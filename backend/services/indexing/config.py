@@ -1,0 +1,6 @@
+# backend/services/indexing/config.py
+
+CHUNK_SIZE = 900
+CHUNK_OVERLAP = 200
+MIN_CHUNK_LENGTH = 30
+MAX_CHUNK_LENGTH = 12000

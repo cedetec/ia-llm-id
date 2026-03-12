@@ -1,0 +1,90 @@
+verificación de archivos
+db.indexados.aggregate([
+  { $group: { _id: "$metadata.documento", chunks: { $sum: 1 } } }
+])
+
+verificación de 1 archivo
+db.concursos_limpios.aggregate([
+  { $match: { documento: "065-20rex.pdf" } },
+  { $group: { _id: "$documento", fragments: { $sum: 1 } } }
+])
+
+db.concursos_limpios.aggregate([
+  { $match: { documento: "09-22-res-bases-apoyo-basal-2022.pdf" } },
+  { $group: { _id: "$documento", fragments: { $sum: 1 } } }
+])
+
+db.concursos_limpios.aggregate([
+  { $match: { documento: "59-21rexbases.pdf" } },
+  { $group: { _id: "$documento", fragments: { $sum: 1 } } }
+])
+
+db.concursos_limpios.aggregate([
+  { $match: { documento: "aprueba-bases-concurso-id-2021.pdf" } },
+  { $group: { _id: "$documento", fragments: { $sum: 1 } } }
+])
+
+db.concursos_limpios.aggregate([
+  { $match: { documento: "bases.pdf" } },
+  { $group: { _id: "$documento", fragments: { $sum: 1 } } }
+])
+
+
+
+verificación de archivos
+db.concursos_limpios.aggregate([
+ { $group: { _id:"$documento", fragments:{ $sum:1 } } }
+])
+
+
+eliminar indexados
+db.indexados.deleteMany({})
+
+cantidad de indexados
+db.indexados.countDocuments()
+
+db.indexados.distinct("metadata.documento")
+
+
+db.indexados.aggregate([
+ { $project: { doc: "$metadata.documento", len: { $strLenCP: "$contenido" } } },
+ { $group: { _id: "$doc", avg_len: { $avg: "$len" } } }
+])
+
+
+db.indexados.find(
+ {},
+ { "metadata.documento": 1 }
+).limit(20)
+
+
+db.indexados.findOne()
+
+db.indexados.findOne(
+ { "metadata.documento": "065-20rex.pdf" },
+ { contenido: 1 }
+)
+
+db.indexados.findOne(
+ { "metadata.documento": "09-22-res-bases-apoyo-basal-2022.pdf" },
+ { contenido: 1 }
+)
+
+db.indexados.findOne(
+ { "metadata.documento": "59-21rexbases.pdf" },
+ { contenido: 1 }
+)
+
+db.indexados.findOne(
+ { "metadata.documento": "aprueba-bases-concurso-id-2021.pdf" },
+ { contenido: 1 }
+)
+
+db.indexados.findOne(
+ { "metadata.documento": "bases.pdf" },
+ { contenido: 1 }
+)
+
+db.indexados.findOne({}, {contenido:1})
+
+db.indexados.findOne()

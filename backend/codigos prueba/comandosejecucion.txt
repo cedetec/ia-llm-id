@@ -1,0 +1,11 @@
+pkill -f "uvicorn backend.main:app"
+
+uvicorn backend.main:app --reload --port 8090
+
+sudo systemctl start mongod
+sudo systemctl status mongod
+
+mongosh "mongodb://127.0.0.1:27017"
+
+
+curl -X POST "http://127.0.0.1:8090/documentos/indexar?mode=rebuild" -H "x-admin-token: super-secret-token"

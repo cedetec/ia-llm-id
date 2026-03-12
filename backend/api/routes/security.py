@@ -1,0 +1,1 @@
+ADMIN_TOKEN = "super-secret-token"
