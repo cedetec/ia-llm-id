@@ -19,7 +19,7 @@ def obtener_contexto(
     tipo_busqueda: str | None = None,
     modo_cita: bool = False,
     filtro_doc: str | None = None,
-    top_k: int = 18,
+    top_k: int = 60,
     scan: int = 6000,
 ):
 
@@ -28,6 +28,9 @@ def obtener_contexto(
     # --------------------------------------------------
 
     nombre_doc = filtro_doc or extraer_nombre_documento(pregunta)
+
+    if nombre_doc:
+        top_k = max(top_k, 80)
 
     if nombre_doc:
         nombre_doc = normalizar(nombre_doc)
@@ -90,6 +93,12 @@ def obtener_contexto(
 
     docs = find_docs(filtro, scan=scan)
 
+    docs = sorted(
+        docs,
+        key=lambda d: len(d.get("contenido") or ""),
+        reverse=True
+    )
+
     # ----------------------------------
     # Prefiltro por tokens
     # ----------------------------------
@@ -106,7 +115,11 @@ def obtener_contexto(
 
             coincidencias = sum(1 for t in toks if t in texto)
 
-            if coincidencias >= 1 or len(texto) > 400:
+            if coincidencias >= 1:
+                docs_token.append(d)
+
+            # permitir textos largos solo si no hay muchos candidatos
+            elif len(docs_token) < 40 and len(texto) > 400:
                 docs_token.append(d)
 
         # usar solo si no reduce demasiado
@@ -115,7 +128,10 @@ def obtener_contexto(
 
     docs = [
         d for d in docs
-        if d.get("contenido") or d.get("texto_extraido")
+        if (
+            (d.get("contenido") or d.get("texto_extraido"))
+            and len((d.get("contenido") or d.get("texto_extraido"))) < 6000
+        )
     ]
 
     # --------------------------------------------------
@@ -179,6 +195,72 @@ def obtener_contexto(
         d["lex_boost"] = lex_score
 
     # --------------------------------------------------
+    # BOOST POR COINCIDENCIA FUERTE DE TOKENS
+    # --------------------------------------------------
+
+    for d in docs:
+
+        cont = (d.get("contenido") or "").lower()
+
+        hits = [t for t in toks if len(t) > 3 and t in cont]
+
+        if len(hits) >= 3:
+            d["token_boost"] = 4
+        elif len(hits) == 2:
+            d["token_boost"] = 2
+        else:
+            d["token_boost"] = 0
+
+    # --------------------------------------------------
+    # BOOST POR PROXIMIDAD DE TOKENS
+    # --------------------------------------------------
+
+    for d in docs:
+
+        cont = (d.get("contenido") or "").lower()
+
+        posiciones = []
+
+        for t in toks:
+            if len(t) > 3:
+                idx = cont.find(t)
+                if idx != -1:
+                    posiciones.append(idx)
+
+        if len(posiciones) >= 2:
+
+            span = max(posiciones) - min(posiciones)
+
+            if span < 120:
+                d["proximity_boost"] = 3
+            elif span < 250:
+                d["proximity_boost"] = 1
+            else:
+                d["proximity_boost"] = 0
+        else:
+            d["proximity_boost"] = 0
+
+    # --------------------------------------------------
+    # PRE-SCORE PARA RANKING
+    # --------------------------------------------------
+
+    for d in docs:
+
+        base = d.get("lex_boost", 0)
+
+        base += d.get("token_boost", 0)
+
+        base += d.get("proximity_boost", 0)
+
+        d["pre_score"] = base
+
+    docs = sorted(
+        docs,
+        key=lambda d: d.get("pre_score", 0),
+        reverse=True
+    )
+
+    # --------------------------------------------------
     # Ranking híbrido
     # --------------------------------------------------
 
@@ -223,7 +305,11 @@ def obtener_contexto(
                 continue
 
         cont = cont.strip()
-        resultados.append(cont)
+        resultados.append({
+            "contenido": cont,
+            "metadata": meta,
+            "score": score
+        })
         seen.add(cont)
 
         if len(resultados) >= top_k:
@@ -254,21 +340,58 @@ def obtener_contexto(
             if cont in seen:
                 continue
 
-            resultados.append(cont)
+            resultados.append({
+                "contenido": cont,
+                "metadata": d.get("metadata", {}),
+                "score": 0
+            })
+
             seen.add(cont)
 
             if len(resultados) >= top_k:
                 break
 
     # --------------------------------------------------
+    # Reordenar contexto (Lost in the Middle mitigation)
+    # --------------------------------------------------
+
+    if len(resultados) > 4:
+
+        # ordenar por score
+        ordenados = sorted(
+            resultados,
+            key=lambda x: x.get("score", 0),
+            reverse=True
+        )
+
+        # mejores chunks
+        top = ordenados[:2]
+
+        # siguientes chunks
+        medio = ordenados[2:-2]
+
+        # últimos chunks relevantes
+        tail = ordenados[-2:]
+
+        # estrategia: mejores al inicio y final
+        resultados = top + medio + tail[::-1]
+
+    # --------------------------------------------------
     # Construir contexto final
     # --------------------------------------------------
 
     contexto = "\n\n".join(
-        r.strip()
+        r["contenido"].strip()
         for r in resultados
-        if r and len(r.strip()) > 30
+        if r and len(r["contenido"].strip()) > 30
     )
+
+    print("\nTOP CONTEXTO RAG:")
+    for r in resultados[:5]:
+        print(r["metadata"])
+        print(r["contenido"][:200])
+        print("score:", r["score"])
+        print("----")
 
     MAX_CONTEXT = 4500
 
