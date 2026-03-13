@@ -13,6 +13,7 @@ from backend.services.chunking_juridico import (
     reconstruir_secciones,
     extraer_nombre_seccion
 )
+from backend.services.preprocessing.chunking_service import chunkear
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -93,18 +94,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
         documento_norm = normalizar(documento)
 
-        texto_doc = "\n".join(fragmentos)
-
-        # dividir primero el documento
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1200,
-            chunk_overlap=250
-        )
-
-        chunks_base = splitter.split_text(texto_doc)
-
-        # luego reconstruir secciones jurídicas
-        chunks = reconstruir_secciones(chunks_base)
+        chunks = fragmentos
 
         # ----------------------------------------
         # DEDUPLICACIÓN DE CHUNKS SIMILARES
