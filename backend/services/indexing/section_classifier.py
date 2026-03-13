@@ -1,4 +1,4 @@
-#section_classsifier.py
+#section_classifier.py
 import re
 import unicodedata
 
@@ -15,74 +15,138 @@ def clasificar_seccion(texto: str) -> str:
         return "general"
 
     t = _normalize(texto)
-    inicio = t[:1200]
+
+    # solo mirar inicio del chunk
+    inicio = t[:800]
 
     # -------------------------------------------------
-    # RESOLUCIONES
-    # -------------------------------------------------
-
-    if re.search(r'\bRESUELV[OE]\b|\bRESOLUCION\b', inicio):
-        return "resolucion"
-
-    # -------------------------------------------------
-    # OBJETIVO
-    # -------------------------------------------------
-
-    if re.search(r'\bOBJETIVO\b|\bFINALIDAD\b|\bPROPOSITO\b', inicio):
-        return "objetivo"
-
-    # -------------------------------------------------
-    # POSTULACIÓN (ANTES QUE REQUISITOS)
+    # BLOQUEAR ANEXOS CIENTÍFICOS
     # -------------------------------------------------
 
     if re.search(
-        r'\bPOSTUL|\bPUEDEN\s+POSTULAR|\bPODRAN\s+POSTULAR|\bINVESTIGADOR\s+RESPONSABLE',
+        r'JOURNAL|NUMERICAL METHODS|STATISTICAL|INTERNATIONAL JOURNAL|IMPACT FACTOR|WEB OF SCIENCE|SCOPUS|INFORMES ACAD[ÉE]MICOS|PUBLICACIONES',
         inicio
     ):
+        return "anexo"
+
+    # -------------------------------------------------
+    # DETECCIÓN DIRECTA DE MARCA "SECCION:"
+    # -------------------------------------------------
+
+    m = re.search(r'SECCION:\s*([A-Z\s]+)', inicio)
+
+    if m:
+        s = m.group(1).strip()
+
+        if "OBJETIVO" in s:
+            return "objetivo"
+
+        if "REQUISITO" in s:
+            return "requisitos"
+
+        if "POSTUL" in s:
+            return "postulacion"
+
+        if "FINANCI" in s:
+            return "financiamiento"
+
+        if "EVALU" in s:
+            return "evaluacion"
+
+        if "BENEFICIARIO" in s:
+            return "beneficiarios"
+
+    # -------------------------------------------------
+    # DETECCIÓN ESTRUCTURA NUMERAL ANID
+    # -------------------------------------------------
+
+    # OBJETIVO
+    if re.search(r'\b1\.\s*(OBJETIVO|FINALIDAD)', inicio):
+        return "objetivo"
+
+    if "OBJETIVO DEL CONCURSO" in inicio:
+        return "objetivo"
+
+    # REQUISITOS
+    if re.search(r'\b2\.\s*(REQUISITOS?)', inicio):
+        return "requisitos"
+
+    if "REQUISITOS DE POSTULACION" in inicio:
+        return "requisitos"
+
+    # POSTULACION
+    if re.search(r'\b3\.\s*(POSTUL|BENEFICI)', inicio):
+        return "postulacion"
+
+    if "PUEDEN POSTULAR" in inicio:
         return "postulacion"
 
     # -------------------------------------------------
-    # REQUISITOS
+    # DETECCIÓN FUERTE DE OBJETIVO
     # -------------------------------------------------
 
-    if re.search(
-        r'\bREQUISIT|\bCERTIFIC|\bAUTORIZA|\bCONDICION|\bDEBERAN\s+CUMPLIR',
-        inicio
-    ):
+    if re.search(r'\b1\s*\.?\s*(OBJETIVO|FINALIDAD)', inicio):
+        return "objetivo"
+
+    if re.search(r'\b2\s*\.?\s*REQUISITOS?', inicio):
         return "requisitos"
 
-    # -------------------------------------------------
-    # EVALUACIÓN
-    # -------------------------------------------------
+    if re.search(r'\b3\s*\.?\s*(POSTUL|BENEFICI)', inicio):
+        return "postulacion"
 
-    if re.search(r'\bEVALUAC', inicio):
+    if re.search(r'\b4\.\s*EVALU', inicio):
         return "evaluacion"
 
-    # -------------------------------------------------
-    # FINANCIAMIENTO
-    # -------------------------------------------------
-
-    if re.search(
-        r'\bFINANCI|\bMONTO|\bSUBSIDIO|\bRECURSOS',
-        inicio
-    ) and not re.search(
-        r'\bCERTIFIC|\bAUTORIZA|\bREQUISIT',
-        inicio
-    ):
+    if re.search(r'\b5\.\s*FINAN', inicio):
         return "financiamiento"
 
     # -------------------------------------------------
-    # BENEFICIARIOS
+    # TITULOS DE SECCIÓN REALES
+    # (solo si aparecen al inicio del bloque)
     # -------------------------------------------------
 
-    if re.search(r'\bBENEFICI', inicio):
-        return "beneficiarios"
+    patrones = {
+
+        "resolucion": r'^\s*(?:\d+(\.\d+)*\s*)?(RESUELVO|RESOLUCION)',
+
+        "objetivo": r'^\s*(?:\d+(\.\d+)*\s*)?(OBJETIVO(\s+DEL\s+CONCURSO)?|FINALIDAD|PROPOSITO)',
+
+        "requisitos": r'^\s*(?:\d+(\.\d+)*\s*)?(REQUISITOS?|CONDICIONES\s+DE\s+POSTULACION)',
+
+        "postulacion": r'^\s*(?:\d+(\.\d+)*\s*)?(POSTULACION|QUIENES\s+PUEDEN\s+POSTULAR)',
+
+        "evaluacion": r'^\s*(?:\d+(\.\d+)*\s*)?(EVALUACION|CRITERIOS\s+DE\s+EVALUACION)',
+
+        "financiamiento": r'^\s*(?:\d+(\.\d+)*\s*)?(FINANCIAMIENTO|MONTO\s+MAXIMO|SUBSIDIO)',
+
+        "beneficiarios": r'^\s*(?:\d+(\.\d+)*\s*)?BENEFICIARIOS(\s+DEL\s+CONCURSO)?',
+
+        "plazos": r'^\s*(?:\d+(\.\d+)*\s*)?(PLAZOS?|FECHAS?|CALENDARIO)'
+    }
+
+    for seccion, patron in patrones.items():
+
+        if re.search(patron, inicio):
+            return seccion
 
     # -------------------------------------------------
-    # PLAZOS
+    # HEURÍSTICAS SUAVES (fallback)
     # -------------------------------------------------
 
-    if re.search(r'\bPLAZO\b|\bFECHA\b', inicio):
-        return "plazos"
+    if "OBJETIVO DEL CONCURSO" in inicio:
+        return "objetivo"
+
+    if "REQUISITOS DE POSTULACION" in inicio:
+        return "requisitos"
+
+    if "QUIENES PUEDEN POSTULAR" in inicio:
+        return "postulacion"
+
+    if "CRITERIOS DE EVALUACION" in inicio:
+        return "evaluacion"
+
+    # evitar clasificar menciones dentro del texto
+    if "beneficiarios" in inicio and not re.search(r'^\s*(\d+\.\s*)?beneficiarios', inicio.lower()):
+        return "general"
 
     return "general"
