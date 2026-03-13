@@ -1,230 +1,125 @@
-# Asistente de Inteligencia Artificial para Consulta y Análisis de Información de I+D
+Instrucciones para probar el sistema (Docker)
+1. Clonar el repositorio
+git clone https://github.com/cedetec/ia-llm-id.git
+cd ia-llm-id
 
-## Descripción del Proyecto
+2. Construir los contenedores
+docker compose build
 
-Este proyecto corresponde al desarrollo de un **asistente de inteligencia artificial basado en técnicas de procesamiento de lenguaje natural (NLP)** para la **consulta y análisis de documentos asociados a investigación y desarrollo (I+D)**.
+3. Iniciar los servicios
+docker compose up -d
 
-El sistema permite realizar **preguntas en lenguaje natural** sobre documentos institucionales como bases concursales, resoluciones y documentos administrativos, recuperando información relevante desde documentos no estructurados.
+Esto iniciará:
 
-Para ello se utiliza una arquitectura basada en **Retrieval-Augmented Generation (RAG)** que combina recuperación de información semántica con modelos de lenguaje.
+Backend FastAPI
 
-El sistema está diseñado principalmente para trabajar con documentos públicos asociados a concursos de financiamiento de investigación, como los publicados por **ANID (Agencia Nacional de Investigación y Desarrollo)**.
+MongoDB
 
----
+Ollama
 
-# Objetivo del Proyecto
+4. Verificar contenedores
+docker ps
 
-Desarrollar un asistente basado en inteligencia artificial que permita **consultar y analizar documentos de I+D de forma automática**, facilitando el acceso a información relevante contenida en documentos no estructurados.
+Deberían aparecer:
 
-El sistema busca apoyar procesos de:
+asistente_backend
+mongo_db
+ollama_service
 
-* análisis de bases concursales
-* identificación de requisitos de postulación
-* identificación de objetivos de programas de financiamiento
-* exploración de resoluciones administrativas
-* recuperación de citas textuales desde documentos oficiales
+5. Descargar el modelo DeepSeek
+docker exec -it ollama_service ollama pull deepseek-r1
 
----
+Verificar:
 
-# Arquitectura del Sistema
+docker exec -it ollama_service ollama list
 
-El sistema utiliza una arquitectura **RAG (Retrieval-Augmented Generation)** compuesta por varias etapas.
+6. Verificar backend
 
-## Flujo general
+Abrir en el navegador:
 
-```
-Usuario
-   │
-   ▼
-Consulta en lenguaje natural
-   │
-   ▼
-Detección de intención
-   │
-   ▼
-Recuperación de documentos relevantes (Retrieval)
-   │
-   ▼
-Ranking semántico de fragmentos
-   │
-   ▼
-Construcción de contexto
-   │
-   ▼
-Modelo de lenguaje
-   │
-   ▼
+http://localhost:8090/docs
+
+También puedes probar:
+
+curl http://127.0.0.1:8090/health/ping
+
+7. Cargar documentos por primera vez
+
+El sistema incluye un script para subir y procesar automáticamente los documentos PDF.
+
+Primero asegúrate de que el script tenga permisos de ejecución:
+
+chmod +x indexar_todos_los_concursos2.sh
+
+Luego ejecútalo:
+
+./indexar_todos_los_concursos2.sh
+
+Este script realiza automáticamente las siguientes operaciones para cada documento PDF:
+
+Subir el documento al backend
+
+Extraer el texto del PDF
+
+Preprocesar el contenido
+
+Generar embeddings
+
+Indexar el documento en MongoDB
+
+El flujo ejecutado por el script es:
+
+PDF → subida → extracción de texto → preprocesamiento → indexación
+
+Durante la ejecución verás algo como:
+
+🚀 Indexación masiva ANID
+📤 Subiendo: documento.pdf
+🧾 Extrayendo texto
+🧹 Preprocesando
+🧠 Indexando
+
+8. Reconstruir índice (opcional)
+
+Si necesitas reconstruir completamente el índice:
+
+curl -X POST "http://127.0.0.1:8090/documentos/indexar?mode=rebuild" \
+-H "x-admin-token: super-secret-token"
+
+9. Probar el asistente
+
+Ejemplo de consulta:
+
+curl -X POST "http://127.0.0.1:8090/consulta" \
+-H "Content-Type: application/json" \
+-d '{"pregunta":"¿Cuál es el objetivo del concurso?"}'
+
+10. Ejemplos de preguntas
+
+Puedes probar consultas como:
+
+¿Cuál es el objetivo del concurso FONDECYT?
+¿Quiénes pueden postular?
+¿Cuáles son los requisitos de postulación?
+¿Cuál es el financiamiento del concurso?
+Extrae una frase donde aparezca "RESOLUCIÓN".
+Flujo completo del sistema
+PDF
+ ↓
+Subida de documento
+ ↓
+Extracción de texto
+ ↓
+Preprocesamiento
+ ↓
+Segmentación en chunks
+ ↓
+Embeddings
+ ↓
+MongoDB
+ ↓
+Retrieval (RAG)
+ ↓
+DeepSeek
+ ↓
 Respuesta generada
-```
-
----
-
-# Procesamiento de Documentos
-
-Los documentos PDF pasan por un pipeline de procesamiento compuesto por las siguientes etapas:
-
-1. **Carga del documento**
-2. **Extracción de texto desde PDF**
-3. **Limpieza y normalización de texto**
-4. **Detección de secciones jurídicas**
-5. **Segmentación del texto en fragmentos**
-6. **Generación de embeddings**
-7. **Indexación en base de datos**
-
-Cada fragmento se almacena con metadatos que incluyen:
-
-* nombre del documento
-* sección detectada
-* contenido textual
-* embedding semántico
-
----
-
-# Arquitectura Técnica
-
-El sistema está compuesto por los siguientes componentes.
-
-## Backend
-
-El backend está desarrollado utilizando:
-
-* **Python**
-* **FastAPI**
-* **MongoDB**
-
-Sus funciones principales son:
-
-* ingestión de documentos
-* extracción de texto
-* preprocesamiento
-* generación de embeddings
-* recuperación semántica
-* ranking de fragmentos
-* generación de respuestas
-
----
-
-## Sistema de Recuperación (Retrieval)
-
-El sistema de recuperación utiliza un enfoque híbrido que combina:
-
-* **búsqueda semántica mediante embeddings**
-* **búsqueda léxica basada en tokens**
-* **heurísticas jurídicas específicas**
-
-El ranking de fragmentos considera:
-
-* similitud semántica
-* coincidencia de palabras clave
-* detección de secciones relevantes
-* heurísticas específicas de documentos jurídicos
-
----
-
-# Dataset Utilizado
-
-El sistema utiliza documentos públicos disponibles en:
-
-* concursos de investigación
-* bases concursales
-* resoluciones administrativas
-* documentos técnicos
-
-Principalmente provenientes de:
-
-**Agencia Nacional de Investigación y Desarrollo (ANID)**
-
-Los documentos incluyen:
-
-* bases concursales
-* resoluciones exentas
-* documentos institucionales
-
----
-
-# Estructura del Proyecto
-
-```
-backend
-│
-├── api
-│   └── routes
-│
-├── services
-│   ├── retrieval
-│   ├── preprocessing
-│   ├── consulta
-│   └── embedding
-│
-├── archived_scripts
-│
-└── main.py
-```
-
----
-
-# Ejemplos de Consultas
-
-El sistema permite responder preguntas como:
-
-* ¿Cuál es el objetivo del concurso InES Género?
-* ¿Quiénes pueden postular al concurso FONDECYT Regular?
-* ¿Cuáles son los requisitos de postulación?
-* ¿Cuál es el financiamiento del concurso?
-* ¿En qué resolución se aprueban las bases?
-* Extrae una frase textual donde aparezca "RESOLUCIÓN".
-
----
-
-# Uso del Sistema
-
-## Iniciar el servidor
-
-```
-uvicorn backend.main:app --reload
-```
-
----
-
-## Indexar documentos
-
-```
-POST /documentos/indexar
-```
-
----
-
-## Realizar consultas
-
-```
-POST /consulta
-```
-
-Ejemplo:
-
-```
-¿Cuál es el objetivo del concurso FONDECYT Regular?
-```
-
----
-
-# Contribución Académica
-
-Este proyecto contribuye al desarrollo de herramientas basadas en inteligencia artificial para la **gestión de información en sistemas de investigación y desarrollo (I+D)**.
-
-La solución propuesta permite transformar grandes volúmenes de documentos no estructurados en **conocimiento accesible mediante consultas en lenguaje natural**.
-
-Esto facilita:
-
-* el acceso a información institucional
-* el análisis de programas de financiamiento
-* el apoyo a procesos de investigación
-
----
-
-# Autor
-
-Vicente Rojas Martínez
-
-Proyecto de Tesis
-Asistente de Inteligencia Artificial para Gestión y Seguimiento de Información de I+D
