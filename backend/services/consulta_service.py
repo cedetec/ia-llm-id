@@ -17,6 +17,7 @@ from backend.services.consulta.structured_extractors import (
 from backend.services.consulta.cita_handler import manejar_cita
 from backend.services.consulta.llm_handler import responder_con_llm
 from backend.services.translation_service import traducir
+import re
 
 
 def procesar_consulta(pregunta: str) -> dict:
@@ -31,6 +32,90 @@ def procesar_consulta(pregunta: str) -> dict:
 
     intent = detectar_intent(pregunta_norm)
 
+    # -------------------------------------------------
+    # ROUTER PREGUNTAS ESTRUCTURADAS
+    # -------------------------------------------------
+
+    pregunta_low = pregunta_norm.lower()
+
+    # -------------------------------------------------
+    # ROUTER PREGUNTAS ESTRUCTURADAS
+    # -------------------------------------------------
+
+    pregunta_low = pregunta_norm.lower()
+    
+    if any(x in pregunta_low for x in [
+        "numero de resolucion",
+        "número de resolución",
+        "fecha de resolucion",
+        "fecha del documento",
+        "tomado de razon",
+    ]):
+
+        # recuperar contexto mínimo
+        contexto = recuperar_contexto(
+            pregunta,
+            True,
+            extraer_docfile(pregunta)
+        )
+
+        if contexto:
+
+            numero = extraer_numero_resolucion_estructurado(
+                pregunta_low,
+                contexto
+            )
+
+            if numero:
+                return {
+                    "respuesta": numero,
+                    "fuente": "Extracción estructurada"
+                }
+
+            fecha = extraer_fecha_si_aplica(
+                pregunta_low,
+                contexto
+            )
+
+            if fecha:
+                return {
+                    "respuesta": fecha,
+                    "fuente": "Extracción estructurada"
+                }
+
+            # -------------------------------------------------
+            # EXTRACCIÓN DIRECTA PARA OBJETIVO / REQUISITOS
+            # -------------------------------------------------
+
+            if any(x in pregunta_low for x in ["objetivo del concurso", "objetivo general"]):
+
+                m = re.search(
+                    r'(objetivo[^\.]{40,250}\.)',
+                    contexto,
+                    re.I
+                )
+
+                if m:
+                    return {
+                        "respuesta": m.group(1).strip(),
+                        "fuente": "RAG (extracción directa)"
+                    }
+
+
+            if any(x in pregunta_low for x in ["requisito", "pueden postular", "quienes pueden postular"]):
+
+                m = re.search(
+                    r'((pueden|podran|quienes)\s+postular[^\.]{40,250}\.)',
+                    contexto,
+                    re.I
+                )
+
+                if m:
+                    return {
+                        "respuesta": m.group(1).strip(),
+                        "fuente": "RAG (extracción directa)"
+                    }
+
     # 1️⃣ Calendario
     resp_cal = manejar_calendario(intent, pregunta_norm)
 
@@ -41,7 +126,11 @@ def procesar_consulta(pregunta: str) -> dict:
     es_modo_cita = modo_cita(pregunta)
     docfile = extraer_docfile(pregunta)
 
+    if docfile:
+        docfile = docfile.lower()
+
     contexto = recuperar_contexto(pregunta, es_modo_cita, docfile)
+    print("\nTAMAÑO CONTEXTO:", len(contexto))
 
     if not contexto:
         return {
@@ -76,9 +165,15 @@ def procesar_consulta(pregunta: str) -> dict:
         if resp_cita:
             return resp_cita
 
+        # fallback LLM
+        respuesta_llm = responder_con_llm(
+            f"Pregunta: {pregunta}\n\nContexto:\n{contexto}",
+            None
+        )
+
         return {
-            "respuesta": "No encontrado en el contexto.",
-            "fuente": "RAG (extracción directa)"
+            "respuesta": respuesta_llm,
+            "fuente": "RAG + LLM fallback"
         }
 
     # 5️⃣ LLM con traducción
@@ -100,3 +195,58 @@ def procesar_consulta(pregunta: str) -> dict:
         "respuesta": respuesta_es,
         "fuente": "RAG + LLM traducido"
     }
+
+
+#embedding_service.py
+
+from sentence_transformers import SentenceTransformer
+import re
+
+_model = None
+
+def _get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("intfloat/multilingual-e5-base")
+    return _model
+
+
+def _normalize_for_embedding(texto: str) -> str:
+    if not texto:
+        return ""
+
+    texto = re.sub(r"\[DOC:[^\]]+\]", "", texto)
+    texto = re.sub(r"\s+", " ", texto)
+    return texto.strip()
+
+
+def embed_text(text: str, mode: str = "passage") -> list[float]:
+
+    if not text or not text.strip():
+        raise ValueError("Texto vacío no puede ser embebido")
+
+    if mode not in {"query", "passage"}:
+        raise ValueError("mode debe ser 'query' o 'passage'")
+
+    text = _normalize_for_embedding(text)
+
+    MAX_CHARS = 2000
+    if len(text) > MAX_CHARS:
+        text = text[:MAX_CHARS]
+
+    MAX_WORDS = 350
+    words = text.split()
+    if len(words) > MAX_WORDS:
+        text = " ".join(words[:MAX_WORDS])
+
+    text = f"{mode}: {text}"
+
+    model = _get_model()
+
+    embedding = model.encode(
+        text,
+        normalize_embeddings=True,
+        convert_to_numpy=True
+    )
+
+    return embedding.tolist()
