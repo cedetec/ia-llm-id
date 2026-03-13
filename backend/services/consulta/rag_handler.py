@@ -1,3 +1,4 @@
+#rag_handler
 from backend.services.retrieval_service import obtener_contexto
 from backend.services.retrieval_text_utils import normalizar
 
@@ -17,28 +18,48 @@ def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
         return None
 
     if isinstance(resultado, str):
-        contexto = resultado
+        return resultado
 
-    elif isinstance(resultado, list):
+    textos = []
+    vistos = set()
 
-        textos = []
+    if isinstance(resultado, list):
+
+        resultado = sorted(
+            resultado,
+            key=lambda x: x.get("score", 0) if isinstance(x, dict) else 0,
+            reverse=True
+        )
 
         for r in resultado:
 
-            if isinstance(r, str):
-                textos.append(r)
-
-            elif isinstance(r, dict):
+            if isinstance(r, dict):
                 texto = r.get("contenido") or r.get("texto") or ""
-                if texto:
-                    textos.append(texto)
 
-        contexto = "\n".join(textos)
+                if isinstance(texto, str) and len(texto) > 20:
 
-    else:
+                    key = texto[:120]
+
+                    if key not in vistos:
+                        textos.append(texto)
+                        vistos.add(key)
+
+            elif isinstance(r, str):
+
+                if len(r) > 20:
+
+                    key = r[:120]
+
+                    if key not in vistos:
+                        textos.append(r)
+                        vistos.add(key)
+
+    if not textos:
         return None
 
-    MAX_CONTEXT = 8000
+    contexto = "\n\n".join(textos)
+
+    MAX_CONTEXT = 40000
     contexto = contexto[:MAX_CONTEXT]
 
     print("------ CONTEXTO RAG ------")
