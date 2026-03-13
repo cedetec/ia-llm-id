@@ -9,18 +9,37 @@ pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 
 def limpiar_texto_pdf(texto: str) -> str:
+
     texto = texto.replace("\xa0", " ")
     texto = texto.replace("\u200b", "")
     texto = re.sub(r'[ \t]+', ' ', texto)
     texto = re.sub(r'\n{3,}', '\n\n', texto)
-    # reparar palabras pegadas OCR
-    texto = re.sub(r'([a-z])([A-ZÁÉÍÓÚÑ])', r'\1 \2', texto)
 
-    # espacios faltantes comunes OCR
+    texto = re.sub(r'([a-z])([A-ZÁÉÍÓÚÑ])', r'\1 \2', texto)
     texto = re.sub(r'([a-z])([A-Z])', r'\1 \2', texto)
 
-    # corregir palabras partidas
-    texto = re.sub(r'(\w)\s+(\w{1,2})\s+(\w)', r'\1\2 \3', texto)
+    # unir encabezados partidos comunes en PDFs ANID
+    texto = re.sub(
+        r'\bOBJETIVO\s*\n\s*DEL\s*\n\s*CONCURSO\b',
+        'OBJETIVO DEL CONCURSO',
+        texto,
+        flags=re.I
+    )
+
+    texto = re.sub(
+        r'\bREQUISITOS\s*\n\s*DE\s*\n\s*POSTULACION\b',
+        'REQUISITOS DE POSTULACION',
+        texto,
+        flags=re.I
+    )
+
+    texto = re.sub(
+        r'\bQUIENES\s*\n\s*PUEDEN\s*\n\s*POSTULAR\b',
+        'QUIENES PUEDEN POSTULAR',
+        texto,
+        flags=re.I
+    )
+
     return texto.strip()
 
 
@@ -38,7 +57,7 @@ def texto_valido(texto: str) -> bool:
     # bajar umbral para documentos administrativos
     return ratio > 0.35
 
-def es_pagina_aprint("----- DEBUG OCR -----")dministrativa(texto: str) -> bool:
+def es_pagina_administrativa(texto: str) -> bool:
     texto_upper = texto.upper()
 
     patrones = [
@@ -50,7 +69,7 @@ def es_pagina_aprint("----- DEBUG OCR -----")dministrativa(texto: str) -> bool:
     coincidencias = sum(p in texto_upper for p in patrones)
 
     # Solo si es corta y claramente página final
-    return coincidencias >= 2 and len(texto) < 1200
+    return coincidencias >= 2 and len(texto) < 800
 
 def extract_text_smart(pdf_path: str) -> str:
     doc = fitz.open(pdf_path)
@@ -66,6 +85,21 @@ def extract_text_smart(pdf_path: str) -> str:
 
     doc.close()
 
+    # reparar encabezados partidos por OCR o layout
+    text = re.sub(
+        r'OBJETIVO\s*\n\s*DEL\s*\n\s*CONCURSO',
+        'OBJETIVO DEL CONCURSO',
+        text,
+        flags=re.I
+    )
+
+    text = re.sub(
+        r'REQUISITOS\s*\n\s*DE\s*\n\s*POSTULACION',
+        'REQUISITOS DE POSTULACION',
+        text,
+        flags=re.I
+    )
+
     if texto_valido(text):
         print("📄 PDF con texto digital detectado")
         return limpiar_texto_pdf(text)
@@ -79,7 +113,7 @@ def extract_text_smart(pdf_path: str) -> str:
         page_text = pytesseract.image_to_string(
             img,
             lang="spa",
-            config="--oem 3 --psm 4 -c preserve_interword_spaces=1"
+            config="--oem 3 --psm 6 -c preserve_interword_spaces=1"
         )
 
         if es_pagina_administrativa(page_text):
@@ -98,3 +132,4 @@ def extract_text_smart(pdf_path: str) -> str:
         print("⚠️ OCR sospechoso: muy poco contenido útil")
 
     return limpiar_texto_pdf(ocr_text)
+
