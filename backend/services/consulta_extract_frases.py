@@ -82,7 +82,7 @@ def _score_frase_juridica(frase: str, tipo_consulta: str | None = None) -> int:
         score += 20
 
     if "fondecyt" in s:
-        score += 10
+        score += 30
 
     return score
 
@@ -205,7 +205,11 @@ def limpiar_ocr_extra(s: str) -> str:
     # reparar palabras cortadas por OCR
     s = re.sub(r"\bisponible\b", "disponible", s, flags=re.I)
     s = re.sub(r"\besolucion\b", "resolucion", s, flags=re.I)
+    s = re.sub(r"\bres\.\b", "resolucion", s, flags=re.I)
     s = re.sub(r"\bobjetiv\b", "objetivo", s, flags=re.I)
+    s = re.sub(r"concur\s*so", "concurso", s, flags=re.I)
+    s = re.sub(r"proyec\s*to", "proyecto", s, flags=re.I)
+    s = re.sub(r"investiga\s*cion", "investigacion", s, flags=re.I)
     s = re.sub(r'R\s*E\s*S\s*U\s*E\s*L\s*V\s*O', 'RESUELVO', s, flags=re.I)
 
     return s.strip()
@@ -227,7 +231,7 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
     # -------------------------------------------------
 
     tipo_consulta = None
-    preg = f"{patron} {contexto[:200]}".lower()
+    preg = (patron + " " + contexto[:200]).lower()
 
     if "objetivo" in preg:
         tipo_consulta = "objetivo"
@@ -258,8 +262,8 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
     # expansión de patrones jurídicos frecuentes
     patron_low = patron.lower()
 
-    if patron_low in ["bases", "concurso", "aprueba", "aprueban"]:
-        patron = r"(apruebanse|apruebase|aprueba|aprueban|bases\s+concursales)"
+    if patron_low in ["bases", "aprueba", "aprueban"]:
+        patron = r"(apruebanse\s+las\s+bases|apruebase\s+las\s+bases|aprueba\s+las\s+bases|aprueban\s+las\s+bases|bases\s+del\s+concurso|bases\s+del\s+presente\s+concurso|bases\s+concursales)"
 
     low = raw.lower()
 
@@ -277,6 +281,9 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
         pattern_ocr = None
     else:
         pattern = re.escape(p_low)
+
+        if p_low in ["res.", "res"]:
+            pattern = r"(resolucion|res\.?|resoluci[oó]n)"
 
         if len(p_low) > 2:
             pattern_ocr = r"\s*".join(list(p_low))
@@ -363,7 +370,7 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
 
         if re.search(pattern, bloque, re.I):
             frase = post_corte_frase(bloque, max_chars=window)
-            if frase and not _es_basura(frase) and len(frase) > 40:
+            if frase and not _es_basura(frase) and len(frase) > 20:
                 return frase
         return None
 
@@ -381,7 +388,7 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
 
         if re.search(pattern, frag, re.I):
             frase = post_corte_frase(frag, max_chars=window)
-            if frase and not _es_basura(frase) and len(frase) > 40:
+            if frase and not _es_basura(frase) and len(frase) > 20:
                 return frase
         return None
 
@@ -405,9 +412,10 @@ def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -
     candidatos.sort(
         key=lambda x: (
             _score_frase_juridica(x, tipo_consulta),
+            x.lower().count("concurso"),
+            x.lower().count("objetivo"),
             1 if x.strip().endswith(".") else 0,
-            -abs(len(x) - 150),
-            len(x)
+            -abs(len(x) - 160),
         ),
         reverse=True
     )
@@ -442,4 +450,3 @@ def extraer_resolucion_en_frase(contexto: str) -> Tuple[Optional[str], Optional[
     num = m.group(1)
     frase = extraer_frase_con_patron(contexto, num)
     return num, frase
-
