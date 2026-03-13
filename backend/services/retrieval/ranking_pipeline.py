@@ -8,17 +8,13 @@ from backend.services.retrieval_scoring import score_chunk
 
 
 # =====================================================
-# COSINE SIMILARITY
+# UTILIDADES
 # =====================================================
 
 def cosine(a, b):
-
     try:
         a = np.array(a, dtype=float)
         b = np.array(b, dtype=float)
-
-        if a.size == 0 or b.size == 0:
-            return 0.0
 
         if a.shape != b.shape:
             return 0.0
@@ -30,14 +26,9 @@ def cosine(a, b):
             return 0.0
 
         return float(np.dot(a, b) / (na * nb))
-
     except Exception:
         return 0.0
 
-
-# =====================================================
-# NORMALIZACIÓN
-# =====================================================
 
 def normalizar_txt(txt):
 
@@ -49,12 +40,102 @@ def normalizar_txt(txt):
         .decode("ascii")\
         .lower()
 
-    # unir letras separadas por OCR
     txt = re.sub(r'(?<=\b[a-z])\s+(?=[a-z]\b)', '', txt)
-
     txt = re.sub(r'\s+', ' ', txt)
 
     return txt
+
+
+# =====================================================
+# DETECCIÓN DE INTENT
+# =====================================================
+
+def detectar_intent(preg):
+
+    if "resolucion" in preg:
+        return "resolucion"
+
+    if "objetivo" in preg or "finalidad" in preg:
+        return "objetivo"
+
+    if "requisito" in preg:
+        return "requisitos"
+
+    if "postular" in preg or "postulacion" in preg:
+        return "postulacion"
+
+    if "financiamiento" in preg or "monto" in preg:
+        return "financiamiento"
+
+    if "evaluacion" in preg:
+        return "evaluacion"
+
+    if "bases" in preg or "aprueba" in preg:
+        return "bases"
+
+    return None
+
+
+# =====================================================
+# HEURÍSTICAS JURÍDICAS
+# =====================================================
+
+def heuristicas_juridicas(texto):
+
+    score = 0
+
+    if "resuelvo" in texto and "bases" in texto:
+        score += 350
+
+    if "aprueb" in texto and "bases" in texto:
+        score += 500
+
+    if "bases concursales" in texto:
+        score += 180
+
+    if "resolucion exenta" in texto:
+        score += 220
+
+    if "objetivo del concurso" in texto:
+        score += 850
+
+    if "objetivo general del concurso" in texto:
+        score += 900
+
+    if "requisitos de postulacion" in texto:
+        score += 320
+
+    if "pueden postular" in texto:
+        score += 300
+
+    if "quienes pueden postular" in texto:
+        score += 360
+
+    if "apruebanse las bases" in texto:
+        score += 2000
+
+    if "apruebase las bases" in texto:
+        score += 1500
+
+    if "apruebanse las bases del concurso" in texto:
+        score += 1800
+
+    return score
+
+
+# =====================================================
+# FILTRO ADMINISTRATIVO
+# =====================================================
+
+def es_texto_administrativo(texto):
+
+    return any(x in texto for x in [
+        "anotese y comuniquese",
+        "contralor general",
+        "oficial de partes",
+        "repositorio de archivo",
+        "direccion nacional"
+    ])
 
 
 # =====================================================
@@ -63,175 +144,36 @@ def normalizar_txt(txt):
 
 def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
-    # -------------------------------------------------
-    # EMBEDDING DE PREGUNTA
-    # -------------------------------------------------
+    doc_query = re.search(r'([\w\-.]+\.pdf)', pregunta.lower())
+    doc_name = doc_query.group(1) if doc_query else None
+
+    preg_l = normalizar_txt(pregunta)
+
+    intent = detectar_intent(preg_l)
 
     try:
         q_emb = embed_text(pregunta, mode="query")
     except Exception:
         q_emb = None
 
+    safe_toks = [t for t in toks if isinstance(t, str) and len(t) > 3]
+
     ranked = []
-
-    # -------------------------------------------------
-    # TOKENS SEGUROS
-    # -------------------------------------------------
-
-    if not isinstance(toks, (list, tuple, set)):
-        toks = []
-
-    safe_toks = [
-        t for t in toks
-        if isinstance(t, str) and len(t) > 3
-    ]
-
-    # -------------------------------------------------
-    # DETECTAR INTENCION DE LA PREGUNTA
-    # -------------------------------------------------
-
-    preg_l = normalizar_txt(pregunta)
-
-    # -------------------------------------------------
-    # DETECTAR MODO CITA
-    # -------------------------------------------------
-
-    if any(k in preg_l for k in [
-        "cita", "frase textual", "extrae una frase",
-        "responde con una frase", "cita textual"
-    ]):
-        modo_cita = True
-
-    intent = None
-
-    if "resolucion" in preg_l or "res." in preg_l:
-        intent = "resolucion"
-
-    elif any(x in preg_l for x in [
-        "objetivo",
-        "finalidad",
-        "proposito",
-        "para que es",
-        "para que sirve"
-    ]):
-        intent = "objetivo"
-
-    elif "requisito" in preg_l:
-        intent = "requisitos"
-
-    elif any(x in preg_l for x in [
-        "que se necesita",
-        "condiciones para postular",
-        "que se requiere"
-    ]):
-        intent = "requisitos"
-
-    elif any(x in preg_l for x in [
-        "postular",
-        "postulacion",
-        "postulación",
-        "pueden postular",
-        "quien puede postular",
-        "quienes pueden postular",
-        "quien puede participar",
-        "quienes pueden participar",
-        "participar en el concurso"
-    ]):
-        intent = "postulacion"
-
-    elif "financiamiento" in preg_l or "monto" in preg_l:
-        intent = "financiamiento"
-
-    elif "evaluacion" in preg_l:
-        intent = "evaluacion"
-
-    elif "aprueba" in preg_l or "bases" in preg_l:
-        intent = "bases"
-
-    if "objetivo" in pregunta.lower():
-        safe_toks.append("objetivo")
-
-    if "requisitos" in pregunta.lower():
-        safe_toks.append("requisitos")
-
-    if "postular" in pregunta.lower():
-        safe_toks.append("postular")
-
-    if not safe_toks:
-        safe_toks = [
-            t for t in re.findall(r'\w+', pregunta.lower())
-            if len(t) > 3
-        ]
-    # -------------------------------------------------
-    # DOCUMENTO EN PREGUNTA
-    # -------------------------------------------------
-
-    # DOCUMENTO EN PREGUNTA
-    doc_query = re.search(r'([\w\-.]+\.pdf)', pregunta.lower())
-    doc_name = doc_query.group(1) if doc_query else None
-
-    # FILTRO POR DOCUMENTO
-    if doc_name:
-        docs = [
-            d for d in docs
-            if doc_name in str(d.get("metadata", {}).get("documento", "")).lower()
-        ]
-
-    # -------------------------------------------------
-    # FRASES CITADAS
-    # -------------------------------------------------
-
-    quoted = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', pregunta)
-
-    quoted = [normalizar_txt(q) for q in quoted]
-
-    # -------------------------------------------------
-    # FILTRO PREVIO POR SECCIÓN (optimización RAG jurídico)
-    # -------------------------------------------------
-
-    if intent:
-
-        docs_filtrados = []
-
-        for d in docs:
-
-            sec = str(d.get("metadata", {}).get("seccion", "")).lower()
-
-            if intent == "objetivo" and "objetivo" in sec:
-                docs_filtrados.append(d)
-
-            elif intent == "requisitos" and "requisito" in sec:
-                docs_filtrados.append(d)
-
-            elif intent == "postulacion" and "postul" in sec:
-                docs_filtrados.append(d)
-
-            elif intent == "financiamiento" and "financ" in sec:
-                docs_filtrados.append(d)
-
-            elif intent == "evaluacion" and "evalu" in sec:
-                docs_filtrados.append(d)
-
-            elif intent == "bases" and (
-                "resolucion" in sec or
-                "resuelvo" in sec or
-                "aprobacion" in sec
-            ):
-                docs_filtrados.append(d)
-
-        # usar filtrado solo si no queda vacío
-        if len(docs_filtrados) > 3:
-            docs = docs_filtrados
-
-    # -------------------------------------------------
-    # LOOP PRINCIPAL
-    # -------------------------------------------------
 
     for d in docs:
 
         cont = str(d.get("contenido", ""))
         meta = d.get("metadata", {})
         seccion = str(meta.get("seccion", "")).lower()
+
+        # normalizar variantes
+        if "resol" in seccion:
+            seccion = "resolucion"
+
+        # bloquear anexos desde metadata
+        if meta.get("seccion") == "anexo":
+            continue
+
         emb = d.get("embedding")
 
         if not cont:
@@ -239,576 +181,389 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
         cont_l = normalizar_txt(cont)
 
-        # normalizar OCR separado
-        cont_l = re.sub(r'f\s*o\s*n\s*d\s*e\s*c\s*y\s*t', 'fondecyt', cont_l)
-        cont_l = re.sub(r'r\s*e\s*s\s*o\s*l\s*u\s*c\s*i\s*o\s*n', 'resolucion', cont_l)
-        cont_l = re.sub(r'o\s*b\s*j\s*e\s*t\s*i\s*v\s*o', 'objetivo', cont_l)
-        cont_l = re.sub(r'p\s*o\s*s\s*t\s*u\s*l\s*a\s*c\s*i\s*o\s*n', 'postulacion', cont_l)
-        cont_l = re.sub(r'r\s*e\s*q\s*u\s*i\s*s\s*i\s*t\s*o\s*s', 'requisitos', cont_l)
+        # -----------------------------------------
+        # cortar anexos científicos dentro del chunk
+        # -----------------------------------------
 
-        # evitar chunks repetitivos OCR
-        if cont_l.count("tomado de razon") > 2:
+        cont_l = re.split(
+            r'journal|scopus|impact\s*factor|web\s*of\s*science|productividad\s*cientifica',
+            cont_l,
+            flags=re.I
+        )[0]
+
+        # ------------------------------------
+        # detectar sección si viene en el texto
+        # ------------------------------------
+
+        if "seccion:" in cont_l:
+
+            if "objetivo" in cont_l[:120]:
+                meta["seccion"] = "objetivo"
+
+            elif "requisitos" in cont_l[:120]:
+                meta["seccion"] = "requisitos"
+
+            elif "postul" in cont_l[:120]:
+                meta["seccion"] = "postulacion"
+
+            elif "evaluacion" in cont_l[:120]:
+                meta["seccion"] = "evaluacion"
+
+            elif "financ" in cont_l[:120]:
+                meta["seccion"] = "financiamiento"
+
+            elif "beneficiarios" in cont_l[:120]:
+                meta["seccion"] = "beneficiarios"
+
+        if es_texto_administrativo(cont_l):
+            continue
+
+        # ------------------------------------
+        # detectar secciones numeradas ANID
+        # ------------------------------------
+
+        if re.search(r'\b1\s*[\.\-]\s*objetivo', cont_l):
+            meta["seccion"] = "objetivo"
+
+        elif re.search(r'\b2\s*[\.\-]\s*requisitos', cont_l):
+            meta["seccion"] = "requisitos"
+
+        elif re.search(r'\b3\s*[\.\-]\s*(postul|benefici)', cont_l):
+            meta["seccion"] = "postulacion"
+
+        elif re.search(r'\b3\s*(quienes\s+pueden\s+postular)', cont_l):
+            meta["seccion"] = "postulacion"
+
+        elif re.search(r'\b4\s*[\.\-]\s*evaluacion', cont_l):
+            meta["seccion"] = "evaluacion"
+
+        # bloquear anexos detectados en indexación
+        if meta.get("seccion") == "anexo_evaluacion":
             continue
 
         # -------------------------------------------------
-        # DESCARTAR TEXTO ADMINISTRATIVO PURO
+        # FILTRO DE ANEXOS CIENTÍFICOS (FONDECYT)
         # -------------------------------------------------
 
         if any(x in cont_l for x in [
-            "anotese y comuniquese",
-            "anótese y comuníquese",
-            "direccion nacional",
-            "contralor general",
-            "oficial de partes",
-            "repositorio de archivo institucional"
+            "journal",
+            "statistical",
+            "probability",
+            "mathematical",
+            "numerical",
+            "annals",
+            "advances in",
+            "applied mathematics",
+            "computational",
+            "impact factor",
+            "web of science",
+            "scopus",
+            "jcr",
+            "quartile",
+            "revista",
+            "publicaciones informadas",
+            "productividad cientifica",
+            "listado de revistas",
         ]):
             continue
 
         # -------------------------------------------------
-        # DESCARTAR CHUNKS MUY CORTOS
+        # FILTRO DOMINIO ANID
         # -------------------------------------------------
 
-        if len(cont_l) < 80:
+        if not any(x in cont_l for x in [
+            "concurso",
+            "postular",
+            "postulacion",
+            "bases",
+            "financiamiento",
+            "proyecto",
+            "institucion patrocinante",
+            "investigador",
+            "beneficiarios",
+            "requisitos",
+            "evaluacion",
+            "anid",
+            "fondecyt",
+            "investigador responsable",
+            "objetivo",
+            "aprueba",
+            "aprueban",
+            "finalidad",
+            "proposito",
+            "convocatoria",
+            "investigacion",
+            "centro",
+        ]):
             continue
 
-        # -------------------------------------------------
-        # SCORE BASE
-        # -------------------------------------------------
+        # ------------------------------------
+        # filtrar OCR basura
+        # ------------------------------------
+
+        if len(set(cont_l.split())) < 6:
+            continue
+
+        # ---------------- SCORE BASE ----------------
 
         try:
-
-            total = score_chunk(
-                cont,
-                safe_toks,
-                modo_cita=modo_cita
-            )
-
-            if isinstance(total, (list, tuple)):
-                total = sum(total)
-
-            total = float(total)
-
-            if total > 200:
-                total = 200
-
+            total = float(score_chunk(cont, safe_toks, modo_cita=modo_cita))
         except Exception:
             continue
 
-        # -------------------------------------------------
-        # PENALIZAR SECCIONES ADMINISTRATIVAS
-        # -------------------------------------------------
+        # ---------------- SEMÁNTICO ----------------
 
-        if any(x in seccion for x in [
-            "resolucion",
-            "vistos",
-            "considerando"
-        ]) and intent in ["objetivo", "requisitos", "postulacion"]:
-            total -= 500
-
-        # -------------------------------------------------
-        # PENALIZAR CHUNKS DEMASIADO LARGOS
-        # -------------------------------------------------
-
-        if len(cont_l) > 4000:
-            total -= 200
-
-        # -------------------------------------------------
-        # FILTRO DE RELEVANCIA
-        # -------------------------------------------------
-
-        if safe_toks:
-            hits = sum(1 for t in safe_toks if normalizar_txt(t) in cont_l)
-            if hits == 0:
-                total -= 15
-
-        # -------------------------------------------------
-        # BOOST FRASES CITADAS
-        # -------------------------------------------------
-
-        for q in quoted:
-
-            if q and q in cont_l:
-                total += 80
-
-        # -------------------------------------------------
-        # SCORE SEMÁNTICO
-        # -------------------------------------------------
-
-        if (
-            q_emb is not None
-            and isinstance(q_emb, (list, tuple, np.ndarray))
-            and isinstance(emb, (list, tuple, np.ndarray))
-            and len(q_emb) > 10
-            and len(emb) == len(q_emb)
-        ):
-
+        if q_emb is not None and isinstance(emb, (list, tuple, np.ndarray)):
             sim = cosine(q_emb, emb)
+            total += sim * 120
 
-            if isinstance(sim, (int, float)):
-                total += sim * 60
-
-        # -------------------------------------------------
-        # MATCH LÉXICO
-        # -------------------------------------------------
+        # ---------------- LÉXICO ----------------
 
         for t in safe_toks:
+            if normalizar_txt(t) in cont_l:
+                total += 4
 
-            t_norm = normalizar_txt(t)
+        # ---------------- HEURÍSTICAS ----------------
 
-            if t_norm in cont_l:
-
-                if modo_cita:
-                    total += 12
-                else:
-                    total += 4
+        total += heuristicas_juridicas(cont_l)
 
         # -------------------------------------------------
-        # BOOST DOCUMENTO
+        # BOOST POR PROXIMIDAD / TITULOS SEGÚN INTENT
         # -------------------------------------------------
 
-        if doc_name:
-
-            meta_doc = str(meta.get("documento", "")).lower()
-
-            if doc_name in meta_doc:
-                total += 200
+        inicio = cont_l[:180]
 
         # -------------------------------------------------
-        # HEURÍSTICAS JURÍDICAS PRINCIPALES
+        # BOOST POR ENCABEZADOS REALES
         # -------------------------------------------------
 
-        # resoluciones que aprueban bases
+        if re.search(r'\b1\s*\.?\s*(objetivo|finalidad)', cont_l):
+            total += 4000
 
-        if "resuelvo" in cont_l and "bases" in cont_l:
-            total += 350
+        if re.search(r'\b2\s*\.?\s*(requisitos?)', cont_l):
+            total += 3500
 
-        elif "resuelvo" in cont_l:
-            total += 180
+        if re.search(r'\b3\s*\.?\s*(postul|benefici)', cont_l):
+            total += 3200
 
-        if any(x in cont_l for x in [
-            "apruebanse las bases concursales",
-            "apruebanse las bases",
-            "aprueba las bases",
-            "aprueban las bases",
-            "apruebanse las bases del concurso",
-            "aprueban las bases del concurso",
-            "apruebanse las bases que regiran",
-            "aprueban las bases que regiran",
-            "transcripcion oficial integra y fiel",
-            "transcripción oficial íntegra y fiel",
-        ]):
-            total += 420
+        if re.search(r'\b4\s*\.?\s*(evaluacion)', cont_l):
+            total += 3000
 
-        if "aprueb" in cont_l and "bases" in cont_l:
-            total += 250
+        if re.search(r'\b5\s*\.?\s*(financ)', cont_l):
+            total += 2800
 
-        if "bases concursales" in cont_l:
-            total += 180
+        # -------------------------------------------------
+        # OBJETIVO
+        # -------------------------------------------------
 
-        # resoluciones administrativas
+        if intent == "objetivo":
 
-        if "resolucion exenta n" in cont_l:
-            total += 260
+            if "objetivo del concurso" in inicio or "objetivo general del concurso" in inicio:
+                total += 2200
 
-        elif "resolucion exenta" in cont_l or "resolucion exento" in cont_l:
-            total += 220
+            if "objetivo del concurso" in cont_l:
+                total += 2000
 
-        elif "resolucion" in cont_l:
-            total += 60
+            if re.search(r'\b1\.\s*(objetivo|finalidad|proposito)', cont_l):
+                total += 2000
 
-        if "vistos:" in cont_l:
-            total += 100
+            if cont_l.startswith("objetivo"):
+                total += 1200
 
-        if "considerando:" in cont_l:
-            total += 100
+            if "tiene por objetivo" in cont_l:
+                total += 1000
+
+            if "objetivo" in seccion:
+                total += 2800
+            else:
+                total -= 700
 
 
         # -------------------------------------------------
-        # CONTENIDO DEL CONCURSO
+        # REQUISITOS
         # -------------------------------------------------
 
-        # objetivo
+        elif intent == "requisitos":
 
-        if "objetivo del presente concurso" in cont_l:
-            total += 380
+            if "requisitos de postulacion" in inicio:
+                total += 2000
 
-        elif any(x in cont_l for x in [
-            "objetivo del concurso",
-            "objetivo general del concurso",
-            "el objetivo del concurso es",
-            "el objetivo de este concurso es",
-        ]):
-            total += 900
+            if re.search(r'\b2\.\s*(requisitos?)', cont_l):
+                total += 1900
 
-        elif "objetivo general del concurso" in cont_l:
-            total += 700
+            if re.search(r'^\s*requisitos', cont_l):
+                total += 1200
 
-        elif "objetivo general" in cont_l:
-            total += 40
-
-
-        # requisitos
-
-        if "requisitos de postulacion" in cont_l:
-            total += 320
-
-        elif "deberan cumplir los siguientes requisitos" in cont_l:
-            total += 380
-
-        elif "deberan cumplir los requisitos" in cont_l:
-            total += 350
-
-        elif "requisitos" in cont_l:
-            total += 160
-
-        elif "los postulantes deberan cumplir" in cont_l:
-            total += 450
-
-        elif "los postulantes deberán cumplir" in cont_l:
-            total += 450
-
-
-        # postulacion
-
-        if "postulacion" in cont_l:
-            total += 60
-
-        if "beneficiarios" in cont_l:
-            total += 120
+            if "requisito" in seccion:
+                total += 2500
+            else:
+                total -= 600
 
 
         # -------------------------------------------------
         # POSTULACIÓN
         # -------------------------------------------------
 
-        if "postulacion debera ser efectuada por" in cont_l:
-            total += 380
+        elif intent == "postulacion":
 
-        elif "postulacion podra ser efectuada por" in cont_l:
-            total += 360
+            # penalizar texto administrativo de postulacion
+            if re.search(r'notificara|notificacion|resultado|carta certificada|plataforma en linea', cont_l):
+                total -= 2000
 
-        elif "quienes pueden postular" in cont_l:
-            total += 360
+            if "pueden postular" in inicio or "quienes pueden postular" in inicio:
+                total += 2000
 
-        elif "quien puede postular" in cont_l:
-            total += 340
+            # variantes reales de ANID
+            if re.search(r'\b(podran\s+postular|podra\s+postular|podran\s+participar|podran\s+presentar)\b', cont_l):
+                total += 2500
 
-        elif "podran postular" in cont_l:
-            total += 320
+            if "podran postular al concurso" in cont_l:
+                total += 2800
 
-        elif "pueden postular" in cont_l:
-            total += 300
+            if "podran postular" in inicio:
+                total += 2800
 
-        elif "podran participar" in cont_l:
-            total += 320
+            if re.search(r'\b3\.\s*(postul|benefici)', cont_l):
+                total += 1800
 
-        elif "podrán participar" in cont_l:
-            total += 320
+            if re.search(r'^\s*(postulacion|postulantes)', cont_l):
+                total += 1100
 
+            # boost fuerte para quienes pueden postular
+            if re.search(r'quienes pueden postular', cont_l):
+                total += 4000
 
-        # -------------------------------------------------
-        # SECCIONES DETECTADAS
-        # -------------------------------------------------
+            if re.search(r'\bpodran\s+postular\b', cont_l):
+                total += 3800
 
-        if "seccion:" in cont_l:
-            total += 100
+            if re.search(r'\bpodran\s+participar\b', cont_l):
+                total += 3500
 
-        if "seccion: objetivo del concurso" in cont_l:
-            total += 280
+            if re.search(r'\bpodran\s+presentar\b', cont_l):
+                total += 3200
 
-        elif "seccion: objetivo general del concurso" in cont_l:
-            total += 260
-
-        elif "seccion: objetivo" in cont_l:
-            total += 160
-
-        elif "seccion: requisitos" in cont_l:
-            total += 160
-
-        elif "seccion: postulacion" in cont_l:
-            total += 160
-
-        # -------------------------------------------------
-        # BOOST FUERTE POR SECCIÓN
-        # -------------------------------------------------
-
-        if intent == "objetivo" and "objetivo" in seccion:
-            total += 900
-
-        elif intent == "postulacion" and "postul" in seccion:
-            total += 800
-
-        elif intent == "requisitos" and "requisito" in seccion:
-            total += 800
-
-        elif intent == "financiamiento" and "financ" in seccion:
-            total += 700
+            if "postul" in seccion:
+                total += 2400
+            else:
+                total -= 500
 
 
         # -------------------------------------------------
-        # BOOST SEGÚN INTENCIÓN
+        # BASES / RESOLUCIONES
+        # -------------------------------------------------
+
+        elif intent in ["bases", "resolucion"]:
+
+            if re.search(r'\b(resuelvo|apruebase|apruebanse|aprueba[n]?|se\s+aprueba[n]?)\b', cont_l):
+                total += 4200
+
+            if re.search(r'\bapruebanse\s+las\s+bases\s+del\s+concurso', cont_l):
+                total += 4500
+
+            if "aprueba las bases" in cont_l or "aprueban las bases" in cont_l:
+                total += 4500
+
+            if "apruebanse las bases del concurso" in cont_l:
+                total += 4500
+
+            if "bases del concurso" in cont_l:
+                total += 900
+
+            if "bases concursales" in cont_l:
+                total += 700
+
+            if seccion in ["beneficiarios", "evaluacion"]:
+                total -= 900
+
+        # -------------------------------------------------
+        # BOOST RESOLUCIONES
         # -------------------------------------------------
 
         if intent == "resolucion":
 
             if "resolucion exenta" in cont_l:
-                total += 600
+                total += 1200
 
-            if "resolucion exenta n" in cont_l:
-                total += 800
-
-        if intent == "requisitos":
-
-            if "seccion: requisitos" in cont_l:
-                total += 600
-
-            if "certificaciones" in cont_l:
-                total += 200
-
-        elif intent == "postulacion":
-
-            if "seccion: postulacion" in cont_l:
-                total += 420
-
-            if "seccion: financiamiento" in cont_l:
-                total -= 200
-
-            if "investigador responsable podra postular" in cont_l:
-                total += 380
-
-            if "personas naturales" in cont_l:
-                total += 200
-
-
-        elif intent == "financiamiento":
-
-            if "seccion: financiamiento" in cont_l:
-                total += 380
-
-            if "seccion: objetivo" in cont_l:
-                total -= 150
-
-
-        elif intent == "objetivo":
-
-            if "seccion: objetivo del concurso" in cont_l:
-                total += 120
-
-            elif "seccion: objetivo general del concurso" in cont_l:
-                total += 520
-
-            elif "seccion: objetivo" in cont_l:
-                total += 320
-
-            if "objetivo del proyecto" in cont_l:
-                total -= 400
-
-            if "seccion: financiamiento" in cont_l:
-                total -= 350
-
-            if "seccion: seguimiento" in cont_l:
-                total -= 320
-
-            if "seccion: evaluacion" in cont_l:
-                total -= 280
-
-            if "objetivo de este concurso" in cont_l:
-                total += 700
-
-            if "el objetivo del concurso es" in cont_l:
-                total += 750
-
-            if "el objetivo de este concurso es" in cont_l:
-                total += 800
-
-            if "objetivo de este concurso es" in cont_l:
-                total += 850
-
-            if "este concurso tiene por objetivo" in cont_l:
+            if "resolucion n" in cont_l:
                 total += 900
 
-            if "tiene por objetivo" in cont_l and "concurso" in cont_l:
-                total += 850
+            if "resuelvo" in cont_l:
+                total += 800
 
+        # -----------------------------------------
+        # SECCIONES JURIDICAS IMPORTANTES
+        # -----------------------------------------
 
-        # -------------------------------------------------
-        # DETECCIÓN DE ESTRUCTURA NUMERAL (BASES ANID)
-        # -------------------------------------------------
+        if "resolucion" in seccion:
+            total += 1200
 
-        if re.search(r'\b\d+\.\d+\b', cont_l):
-            total += 40
+        if "aprobacion" in seccion:
+            total += 1100
 
-        if re.search(r'\n\s*\d+\.\s+[a-z]', cont_l):
-            total += 25
+        if "bases" in seccion:
+            total += 900
 
-        if re.search(r'\b\d+\.\d+\s+(certificaciones|requisitos|postul)', cont_l):
-            total += 120
+        if "convocatoria" in seccion:
+            total += 700
 
-        if re.search(r'\b1\.\d+\s+(objetivo|finalidad)', cont_l):
-            total += 150
+        # ---------------- BOOST DOCUMENTO ----------------
 
-        if re.search(r'\b\d+\.\d+\s+(evaluacion|criterios)', cont_l):
-            total += 120
+        if doc_name:
 
-        if re.search(r'\b1\.\s+objetivo', cont_l):
-            total += 400
+            meta_doc = str(meta.get("documento", "")).lower()
 
-        if re.search(r'\b2\.\s+requisitos', cont_l):
-            total += 350
+            if doc_name.lower() in meta_doc:
+                total += 400
 
-        if re.search(r'\b3\.\s+postul', cont_l):
-            total += 300
+        # ---------------- FILTROS ----------------
 
-        if "investigacion" in cont_l and "desarrollo" in cont_l:
-            total += 20
-
-
-        # -------------------------------------------------
-        # TEXTO ADMINISTRATIVO
-        # -------------------------------------------------
-
-        if any(x in cont_l for x in [
-            "oficial de partes",
-            "repositorio de archivo",
-            "comite de asignacion",
-            "anotese y comuniquese",
-            "anótese y comuníquese",
-            "anotese y comunique",
-            "anótese y comunique",
-            "direccion nacional",
-            "ministerio de educacion",
-            "ministerio de educación",
-            "contralor general",
-            "tómese razón"
-        ]):
-            total -= 2000
-
-        if "anotese" in cont_l and "comunique" in cont_l:
-            total -= 2000
-
-        if "direccion nacional" in cont_l:
-            total -= 1500
-
-        if "anotese y comuniquese" in cont_l:
-            total -= 2000
-
-        # -------------------------------------------------
-        # PENALIZACIONES
-        # -------------------------------------------------
-
-        if 200 < len(cont) < 1200:
-            total += 12
-
-        if cont.count("cid:") > 5:
-            total -= 5
-
-        if not isinstance(total, (int, float)):
+        if len(cont_l) < 80:
             continue
 
-        if np.isnan(total):
+        if len(cont_l) > 4000:
+            total -= 200
+
+        # ---------------- RESULTADO ----------------
+
+        DEBUG_RANK = True
+
+        if DEBUG_RANK:
+            print("DEBUG CHUNK SCORE:", total)
+            print(cont[:120])
+            print("----")
+
+        # evitar scores negativos extremos
+        if total < -200:
             continue
 
-        try:
-            total = float(total)
-        except Exception:
-            continue
-
-        # -------------------------------------------------
-        # EXTRAER FRASE CITABLE
-        # -------------------------------------------------
-
-        if modo_cita:
-
-            # limpiar OCR frecuente
-            cont = re.sub(r'\b[Tt]os\s+', 'Los ', cont)
-            cont = re.sub(r'\b[Aa]ción', 'Acción', cont)
-            cont = re.sub(r'\b[Ii]strativo', 'Administrativo', cont)
-
-            frases = re.split(r'(?<=[\.\!\?:;])\s+|\n{2,}', cont)
-
-            frases_validas = [
-                f.strip() for f in frases
-                if 40 < len(f) < 400
-            ]
-
-            if frases_validas:
-
-                mejor_frase = frases_validas[0]
-                mejor_score = -1
-
-                for f in frases_validas:
-
-                    f = f.strip()
-
-                    # evitar frases muy cortas
-                    if len(f.split()) < 6:
-                        continue
-
-                    # evitar frases cortadas por OCR
-                    if re.match(r'^[a-záéíóúñ]{1,4}\b', f):
-                        continue
-
-                    # evitar frases administrativas
-                    f_norm = normalizar_txt(f)
-
-                    if any(x in f_norm for x in [
-                        "oficial de partes",
-                        "repositorio de archivo",
-                        "comite de asignacion",
-                        "anotese y comuniquese",
-                        "anótese y comuníquese",
-                        "direccion nacional",
-                        "ministerio de educacion"
-                    ]):
-                        continue
-
-                    score = 0
-
-                    # coincidencia con tokens de pregunta
-                    score += sum(
-                        1 for t in safe_toks
-                        if normalizar_txt(t) in f_norm
-                    )
-
-                    # penalizar frases que empiezan mal
-                    if f[0].islower():
-                        score -= 2
-
-                    # bonus semántico fuerte
-                    if "objetivo" in f_norm:
-                        score += 5
-
-                    if "requisito" in f_norm:
-                        score += 5
-
-                    if "postular" in f_norm:
-                        score += 4
-
-                    if "bases" in f_norm:
-                        score += 4
-
-                    if "concurso" in f_norm:
-                        score += 2
-
-                    if "fondecyt" in f_norm:
-                        score += 2
-
-                    if score > mejor_score:
-                        mejor_score = score
-                        mejor_frase = f
-
-                cont = mejor_frase
-    
         ranked.append({
             "score": float(total),
             "contenido": cont,
             "metadata": meta
         })
 
-    # -------------------------------------------------
-    # ORDEN FINAL
-    # -------------------------------------------------
-
     ranked.sort(key=lambda x: x["score"], reverse=True)
 
-    return ranked
+    # -------------------------------------------------
+    # LIMITAR DOMINANCIA DE DOCUMENTOS
+    # -------------------------------------------------
+
+    seen_docs = {}
+    filtered = []
+
+    MAX_DOC_CHUNKS = 4   # antes 8
+
+    for r in ranked:
+
+        doc = r["metadata"].get("documento", "unknown")
+
+        seen_docs.setdefault(doc, 0)
+
+        if seen_docs[doc] < MAX_DOC_CHUNKS:
+
+            filtered.append(r)
+            seen_docs[doc] += 1
+
+    ranked = filtered
+
+    return ranked[:12]
