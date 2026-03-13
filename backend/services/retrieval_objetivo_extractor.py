@@ -1,3 +1,4 @@
+#retrieval_objeto_extractor.py
 from __future__ import annotations
 import re
 from typing import Optional, Dict
@@ -32,20 +33,44 @@ def extraer_cita_objetivo(contexto: str) -> Optional[Dict[str, str]]:
         return re.sub(r"\s+", " ", s).strip()
 
     def _score(s: str) -> int:
+
         sl = s.lower()
         score = 0
-        if "objetivo general del concurso" in sl: score += 20
-        if "objetivo general" in sl: score += 6
-        if "concurso" in sl: score += 4
-        if len(s) > 450: score -= 3
+
+        if "objetivo general del concurso" in sl:
+            score += 40
+
+        elif "objetivo del concurso" in sl:
+            score += 30
+
+        elif "objetivo general" in sl:
+            score += 20
+
+        if "concurso" in sl:
+            score += 5
+
+        # penalizar frases administrativas
+        if "bases del concurso" in sl:
+            score -= 20
+
+        # penalizar frases cortadas
+        if sl.startswith(("5 ", "4 ", "3 ", "2 ")):
+            score -= 30
+
+        if len(s) > 500:
+            score -= 5
+
         return score
 
     PATTERNS = [
-        re.compile(r"\bobjetivo\s+general\s+del\s+concurso\b", re.IGNORECASE),
-        re.compile(r"\bobjetivo\s+general\b", re.IGNORECASE),
-        re.compile(r"\btiene\s+por\s+objeto\b", re.IGNORECASE),
-        re.compile(r"\bprop[oó]sito\b", re.IGNORECASE),
-        re.compile(r"\bfinalidad\b", re.IGNORECASE),
+
+        re.compile(r"\bobjetivo\s+general\s+del\s+concurso\b", re.I),
+        re.compile(r"\bobjetivo\s+del\s+concurso\b", re.I),
+        re.compile(r"\bel\s+objetivo\s+del\s+concurso\b", re.I),
+        re.compile(r"\bel\s+objetivo\s+de\s+este\s+concurso\b", re.I),
+        re.compile(r"\beste\s+concurso\s+tiene\s+por\s+objetivo\b", re.I),
+        re.compile(r"\btiene\s+por\s+objetivo\b", re.I),
+
     ]
 
     mejor = None
@@ -55,8 +80,8 @@ def extraer_cita_objetivo(contexto: str) -> Optional[Dict[str, str]]:
         for m in pat.finditer(contexto):
             idx = m.start()
 
-            start = max(0, idx - 120)
-            end = min(len(contexto), idx + 900)
+            start = max(0, idx - 300)
+            end = min(len(contexto), idx + 600)
             window = contexto[start:end]
 
             partes = re.split(r"(?<=[\.\!\?])\s+|\n{2,}", window)
@@ -81,3 +106,4 @@ def extraer_cita_objetivo(contexto: str) -> Optional[Dict[str, str]]:
         "cita": mejor,
         "score": mejor_score
     }
+
