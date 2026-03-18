@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Header
-from database import index_collection
+from database.mongo import index_collection
 
 from backend.services.document_service import (
     extraer_documentos,
