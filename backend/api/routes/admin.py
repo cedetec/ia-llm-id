@@ -1,7 +1,7 @@
 # backend/api/routes/admin.py
 
 from fastapi import APIRouter, HTTPException, Query, Header
-from database import documents_collection, clean_collection, index_collection
+from database.mongo import documents_collection, clean_collection, index_collection
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
