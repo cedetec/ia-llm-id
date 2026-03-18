@@ -1,6 +1,6 @@
 # services/preprocessing/handlers/csv_handler.py
 
-from database import clean_collection
+from database.mongo import clean_collection
 from backend.services.mineria_service import extraer_keywords, extraer_entidades_basicas
 from backend.services.preprocessing.chunking_service import chunkear
 from backend.services.preprocessing.chunk_id_builder import build_chunk_id
