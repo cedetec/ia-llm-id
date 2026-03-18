@@ -1,133 +1,176 @@
-#cita_handler.py
+# cita_handler.py
+
 from backend.services.consulta_extract_frases import (
     extraer_frase_con_patron,
     recortar_frase_limpia,
 )
 
 from backend.services.consulta_utils_text import score_semantico
+
 import re
 
 
 def manejar_cita(pregunta_low, contexto, pregunta):
 
+    # -------------------------------------------------
+    # VALIDACIÓN INICIAL (FIX BUG dict.split)
+    # -------------------------------------------------
+
+    if isinstance(contexto, dict):
+        contexto = (
+            contexto.get("contenido")
+            or contexto.get("texto")
+            or ""
+        )
+
+    if not isinstance(contexto, str) or not contexto.strip():
+        return None
+
     patrones = []
 
-    # eliminar anexos científicos
+    # -------------------------------------------------
+    # LIMPIEZA CONTEXTO (OCR + ruido científico)
+    # -------------------------------------------------
+
     contexto = re.split(
         r'JOURNAL|SCOPUS|IMPACT FACTOR|PRODUCTIVIDAD CIENTIFICA',
         contexto,
         flags=re.I
     )[0]
 
-
-    # normalizar OCR común
-    contexto = re.sub(r'r\s*e\s*s\s*o\s*l\s*u\s*c\s*i\s*o\s*n', 'resolucion', contexto, flags=re.I)
-
+    # normalización OCR
     contexto = re.sub(
-        r'\bresoluci[oó]n\b',
+        r'r\s*e\s*s\s*o\s*l\s*u\s*c\s*i\s*o\s*n',
         'resolucion',
         contexto,
         flags=re.I
     )
 
-    # normalizar abreviaturas comunes
+    contexto = re.sub(r'\bresoluci[oó]n\b', 'resolucion', contexto, flags=re.I)
+
+    # abreviaturas
     contexto = re.sub(r'\bres\.\s*exenta\b', 'resolucion exenta', contexto, flags=re.I)
     contexto = re.sub(r'\bresol\.\s*exenta\b', 'resolucion exenta', contexto, flags=re.I)
 
-    # resoluciones
+    # limpieza general
+    contexto = re.sub(r'\n+', '\n', contexto)
+    contexto = re.sub(r'\s{2,}', ' ', contexto)
+
+    # -------------------------------------------------
+    # PATRONES SEGÚN INTENCIÓN
+    # -------------------------------------------------
+
     if "resol" in pregunta_low:
         patrones += [
             "resolucion",
             "resolucion exenta",
-            "resolucion exento",
-            "res n",
-            "res. n",
-            "res.",
-            "resol",
-            "rex",
             "resuelvo",
             "resuelve",
+            "rex",
+            "res n",
         ]
 
-    # aprobación de bases
     if "aprueb" in pregunta_low or "bases" in pregunta_low:
         patrones += [
             "apruebase",
             "apruebanse",
+            "aprueba",
+            "aprueban",
+            "se aprueban",
             "aprueban las bases",
-            "apruebanse las bases",
-            "apruebase las bases",
-            "apruebanse las bases del concurso",
-            "apruebase las bases del concurso",
             "bases del concurso",
             "bases concursales",
-            "resuelvo",
-            "aprueba las bases del concurso"
         ]
 
-    # objetivo del concurso
     if "objetivo" in pregunta_low:
         patrones += [
             "objetivo del concurso",
-            "objetivo de este concurso",
-            "el objetivo del concurso",
-            "el objetivo de este concurso",
-            "este concurso tiene por objetivo",
-            "tiene como objetivo",
+            "objetivo general",
             "tiene por objetivo",
-            "objetivo general del concurso"
+            "tiene como objetivo",
         ]
 
-    # requisitos de postulación
     if "postular" in pregunta_low or "requisito" in pregunta_low:
         patrones += [
             "requisitos",
             "requisitos de postulacion",
             "pueden postular",
             "podran postular",
-            "quienes pueden postular"
         ]
+
+    patrones_norm = [p.lower() for p in patrones]
+
+    # -------------------------------------------------
+    # DIVIDIR CONTEXTO (MEJORADO)
+    # -------------------------------------------------
 
     chunks = [
         c.strip()
         for c in re.split(r"\n{2,}|--- CHUNK ---", contexto)
-        if len(c.strip()) > 80
+        if len(c.strip()) > 60
     ]
 
     frases = []
 
+    # -------------------------------------------------
+    # EXTRACCIÓN DE FRASES
+    # -------------------------------------------------
+
     for chunk in chunks:
-        for pat in patrones:
-            frase = extraer_frase_con_patron(chunk, pat, window=420)
-            if frase:
-                frases.append(frase)
+
+        # split más inteligente
+        subfrases = re.split(
+            r'(?<=[\.\!\?])\s+|\n+|;|:|,\s+(?=[A-Z])',
+            chunk
+        )
+
+        for sub in subfrases:
+
+            sub = sub.strip()
+
+            if len(sub) < 60:
+                continue
+
+            for pat in patrones:
+
+                if pat in sub.lower():
+
+                    frases.append(sub)
+                    break
+
+            # fallback: si no hay patrón, igual guardar algunas
+            if not patrones and len(sub) > 100:
+                frases.append(sub)
 
     frases = list(dict.fromkeys(frases))
 
-    patrones_norm = [p.lower() for p in patrones]
+    if not frases:
+        return None
+
+    # -------------------------------------------------
+    # FILTROS
+    # -------------------------------------------------
 
     frases = [
         f for f in frases
-        if any(p in f.lower()[:120] for p in patrones_norm)
-    ]
-
-    frases = [
-        f for f in frases
-        if len(f.split()) > 6
+        if len(f.split()) > 6 and len(f) > 60
     ]
 
     if not frases:
         return None
 
-    # -------------------------------
-    # DEBUG frases candidatas
-    # -------------------------------
+    # -------------------------------------------------
+    # DEBUG
+    # -------------------------------------------------
 
     print("\nCANDIDATOS CITA:")
     for f in frases[:5]:
         print("-", f[:150])
 
-    # ranking combinado: semántico + presencia de patrón
+    # -------------------------------------------------
+    # SCORING MEJORADO
+    # -------------------------------------------------
+
     def score_total(f):
 
         s_sem = score_semantico(f, pregunta)
@@ -137,10 +180,33 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             if p in f.lower()
         )
 
-        return s_sem + (s_pat * 0.15)
+        s_legal = 0
 
+        if "resuelvo" in f.lower():
+            s_legal += 0.5
+
+        if "apruebase" in f.lower():
+            s_legal += 0.6
+
+        if "objetivo del concurso" in f.lower():
+            s_legal += 0.5
+
+        s_len = min(len(f) / 400, 1)
+
+        return (s_sem * 0.5) + (s_pat * 0.3) + (s_len * 0.1) + s_legal
 
     mejor = max(frases, key=score_total)
+
+    # -------------------------------------------------
+    # FALLBACK (CLAVE PARA TESIS)
+    # -------------------------------------------------
+
+    if score_total(mejor) < 0.15:
+        mejor = frases[0]
+
+    # -------------------------------------------------
+    # MÉTRICAS
+    # -------------------------------------------------
 
     score_sem = score_semantico(mejor, pregunta)
 
@@ -149,9 +215,19 @@ def manejar_cita(pregunta_low, contexto, pregunta):
         if t in mejor.lower()
     )
 
+    # -------------------------------------------------
+    # LIMPIEZA FINAL
+    # -------------------------------------------------
+
+    respuesta = recortar_frase_limpia(mejor)
+
+    respuesta = re.sub(r'\s+', ' ', respuesta)
+    respuesta = re.sub(r'([a-z])([A-Z])', r'\1 \2', respuesta)
+
     return {
-        "respuesta": recortar_frase_limpia(mejor),
+        "respuesta": respuesta.strip(),
         "fuente": "RAG (extracción directa)",
         "score_semantico": round(score_sem, 3),
         "score_lexico": score_lex,
     }
+
