@@ -1,36 +1,63 @@
-# backend/services/retrieval/citation_utils.py
+#citation_utils.py
 
 import re
 import unicodedata
 
 
-def _normalizar(txt: str) -> str:
+# --------------------------------------------------
+# 🔧 Normalización eficiente
+# --------------------------------------------------
 
+def _normalizar(txt: str) -> str:
     if not txt:
         return ""
 
     txt = unicodedata.normalize("NFKD", txt)
-    txt = txt.encode("ascii", "ignore").decode("ascii")
-    txt = txt.lower()
+    txt = txt.encode("ascii", "ignore").decode("ascii").lower()
 
-    # colapsar espacios
     txt = re.sub(r'\s+', ' ', txt)
-
-    # corregir OCR tipo "o b j e t i v o"
     txt = re.sub(r'([a-z])\s+(?=[a-z])', r'\1', txt)
 
     return txt.strip()
 
 
+# --------------------------------------------------
+# 🔍 Extraer palabras entre comillas
+# --------------------------------------------------
+
 def _extraer_palabras_clave(pregunta: str):
-
-    palabras = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', pregunta)
-
     return [
         _normalizar(p)
-        for p in palabras
+        for p in re.findall(r'[\"“”]([^\"“”]+)[\"“”]', pregunta)
     ]
 
+
+# --------------------------------------------------
+# 🧠 Patrones compilados (más eficiente)
+# --------------------------------------------------
+
+PATRONES_CLAVE = re.compile(
+    r"""
+    objetivo.{0,40}(concurso|finalidad|proposito)|
+    tiene\s+por\s+(objetivo|finalidad)|
+    \d+\.\s*(objetivo|requisitos|postulacion|beneficiarios)|
+    podran.{0,20}postular|
+    aprueb[a-z]*\s+las?\s+bases|
+    resolucion\s+(exenta|n)|
+    res\.?\s*n|
+    \b\d{1,2}/\d{1,2}/\d{4}\b|
+    fondecyt|idea|i\s*\+\s*d
+    """,
+    re.VERBOSE
+)
+
+PATRON_RESOLUTIVO = re.compile(r'resuelv|aprueb')
+PATRON_RESOLUCION = re.compile(r'resolucion|res\.')
+
+
+# --------------------------------------------------
+# 🎯 FUNCIÓN PRINCIPAL
+# --------------------------------------------------
 
 def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
 
@@ -38,184 +65,126 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
         texto = str(texto or "")
 
     texto_norm = _normalizar(texto)
-
     palabras = _extraer_palabras_clave(pregunta)
+
+    # --------------------------------------------------
+    # 🔍 MATCH PRINCIPAL
+    # --------------------------------------------------
 
     match = None
 
-    # ----------------------------------------------------
-    # 1️⃣ búsqueda por palabras entre comillas
-    # ----------------------------------------------------
+    # 1. búsqueda por comillas
+    for palabra in palabras:
+        match = re.search(re.escape(palabra), texto_norm)
+        if match:
+            break
 
-    if palabras:
+    # 2. fallback: patrones
+    if not match:
+        match = PATRONES_CLAVE.search(texto_norm)
 
-        for palabra in palabras:
+    # 3. fallback jurídico básico
+    if not match:
+        match = PATRON_RESOLUCION.search(texto_norm)
 
-            for palabra in palabras:
-
-                pat = re.escape(palabra)
-
-                match = re.search(pat, texto_norm, re.IGNORECASE)
-
-                if match:
-                    break
-
-    # ----------------------------------------------------
-    # 2️⃣ patrones jurídicos si no hay palabra explícita
-    # ----------------------------------------------------
+    # --------------------------------------------------
+    # 🚨 fallback si no hay nada
+    # --------------------------------------------------
 
     if not match:
-
-        patrones = [
-
-            # --------------------------------
-            # OBJETIVO DEL CONCURSO (robusto)
-            # --------------------------------
-
-            r"objetivo.{0,20}concurso",
-            r"objetivo.{0,40}finalidad",
-            r"objetivo.{0,40}proposito",
-            r"tiene\s+por\s+objetivo",
-            r"tiene\s+por\s+finalidad",
-            r"el\s+presente\s+concurso\s+tiene\s+por\s+objetivo",
-
-            # --------------------------------
-            # TITULOS DE SECCION
-            # --------------------------------
-
-            r"\d+\.\s*objetivo",
-            r"\d+\.\s*objetivo\s+del\s+concurso",
-            r"\d+\.\s*objetivo\s+general",
-
-            r"\d+\.\s*beneficiarios",
-
-            r"\d+\.\s*requisitos",
-            r"\d+\.\s*requisitos\s+de\s+postulacion",
-
-            r"\d+\.\s*postulacion",
-
-            # --------------------------------
-            # REQUISITOS
-            # --------------------------------
-
-            r"requisitos.{0,20}postulacion",
-            r"requisitos.{0,40}postular",
-
-            # --------------------------------
-            # POSTULANTES
-            # --------------------------------
-
-            r"podran.{0,20}postular",
-            r"quienes.{0,20}pueden.{0,20}postular",
-
-            # --------------------------------
-            # PROGRAMAS
-            # --------------------------------
-
-            r"\bidea\b",
-            r"i\s*\+\s*d",
-            r"investigacion.{0,20}desarrollo",
-            r"f\s*o\s*n\s*d\s*e\s*c\s*y\s*t",
-
-            # --------------------------------
-            # BASES
-            # --------------------------------
-
-            r"aprue?b[a-z]*\s+las?\s+bases",
-            r"aprue?b[a-z]*\s+las?\s+bases\s+del\s+concurso",
-            r"aprue?b[a-z]*.{0,20}bases",
-            r"resolucion\s+exenta",
-            r"resolucion\s+n[°o]\s*\d+",
-            r"res\.?\s*n[°o]\s*\d+",
-
-            # --------------------------------
-            # FECHAS
-            # --------------------------------
-
-            r"\b\d{1,2}/\d{1,2}/\d{4}\b"
-
-            r"aprueban\s+las\s+bases",
-            r"apruebese\s+las\s+bases",
-            r"aprueban\s+las\s+bases\s+del\s+concurso",
-
-
-            r"el\s+presente\s+concurso\s+tiene\s+por\s+objetivo",
-            r"objetivo\s+general\s+del\s+concurso",
-            r"el\s+objetivo\s+del\s+concurso",
-            r"podran\s+postular",
-            r"podran\s+presentar\s+proyectos",
-            r"beneficiarios\s+del\s+concurso",
-
-            r"el\s+objetivo\s+de\s+este\s+concurso",
-            r"el\s+objetivo\s+del\s+concurso",
-            r"objetivo\s+de\s+este\s+concurso",
-            r"objetivo\s+general",
-            r"podran\s+postular",
-            r"postulacion\s+debera\s+ser",
-            r"apruebanse\s+las\s+bases",
-            r"apruebase\s+las\s+bases",
-            r"aprueban\s+las\s+bases",
-        ]
-
-        for p in patrones:
-
-            match = re.search(p, texto_norm)
-
-            if match:
-                break
-
-    if not match:
-
-        # si el documento está fijado,
-        # devolver fragmento del texto en vez de descartarlo
         if modo_documento_fijado:
-
-            texto = texto.strip()
-
-            if len(texto) > 200:
-                return texto[:200]
-
-            return texto
-
+            return texto.strip()[:200]
         return texto
 
-    # ----------------------------------------------------
-    # 3️⃣ extraer frase alrededor
-    # ----------------------------------------------------
+    # --------------------------------------------------
+    # ✂️ dividir en frases
+    # --------------------------------------------------
 
-    delimitadores = ['.', ';', ':', ',', '\n']
+    frases = re.split(r'(?<=[\.\!\?])\s+', texto)
 
-    inicio = -1
+    mejor_score = -1
+    mejor_frase = None
 
-    for d in delimitadores:
+    frases_resolutivas = []
 
-        pos = texto.rfind(d, 0, match.start())
+    for f in frases:
 
-        if pos > inicio:
-            inicio = pos
+        if not f.strip():
+            continue
 
-    fin_candidates = [
-        texto.find('.', match.end()),
-        texto.find(';', match.end()),
-        texto.find(':', match.end()),
-        texto.find('\n', match.end())
-    ]
+        f_norm = _normalizar(f)
+        score = 0
 
-    fin_candidates = [f for f in fin_candidates if f != -1]
+        # ----------------------------------
+        # 🎯 coincidencias fuertes
+        # ----------------------------------
 
-    fin = min(fin_candidates) if fin_candidates else len(texto)
+        if palabras and any(p in f_norm for p in palabras):
+            score += 12
 
-    inicio = 0 if inicio == -1 else inicio + 1
-    fin = len(texto) if fin == -1 else fin + 1
+        if match:
+            fragmento = texto_norm[match.start():match.end()]
+            if fragmento and fragmento in f_norm:
+                score += 10
 
-    frase = texto[inicio:fin].strip()
+        # ----------------------------------
+        # ⚖️ peso jurídico
+        # ----------------------------------
 
-    if len(frase) < 40:
+        if PATRON_RESOLUTIVO.search(f_norm):
+            score += 25
+            frases_resolutivas.append(f)
 
-        # intentar ampliar alrededor del match
-        start = max(0, match.start() - 120)
-        end = min(len(texto), match.end() + 120)
+        elif PATRON_RESOLUCION.search(f_norm):
+            score += 10
 
-        return texto[start:end].strip()
+        # ----------------------------------
+        # 📊 contexto útil
+        # ----------------------------------
 
-    return frase
+        if re.search(r'fondecyt|idea|i\+d', f_norm):
+            score += 5
+
+        if len(f.split()) > 8:
+            score += 2
+
+        # ----------------------------------
+        # 🏆 mejor frase
+        # ----------------------------------
+
+        if score > mejor_score:
+            mejor_score = score
+            mejor_frase = f
+
+    # --------------------------------------------------
+    # 🔥 PRIORIDAD ABSOLUTA: resolutivas
+    # --------------------------------------------------
+
+    if frases_resolutivas:
+
+        for f in frases_resolutivas:
+            if re.search(r'aprueb.*bases', _normalizar(f)):
+                return f.strip()
+
+        return max(frases_resolutivas, key=lambda x: len(x.split())).strip()
+
+    # --------------------------------------------------
+    # fallback mejor frase
+    # --------------------------------------------------
+
+    respuesta = mejor_frase.strip() if mejor_frase else texto[:200]
+
+    # --------------------------------------------------
+    # 🧹 validaciones finales
+    # --------------------------------------------------
+
+    if len(respuesta.split()) < 6:
+        respuesta = max(frases, key=lambda x: len(x.split()), default=texto[:200])
+
+    if respuesta.count('/') > 3:
+        respuesta = texto[:200]
+
+    if len(respuesta) > 300:
+        respuesta = respuesta[:300]
+
+    return respuesta
