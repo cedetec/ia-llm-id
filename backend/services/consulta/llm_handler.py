@@ -5,6 +5,35 @@ from backend.core.llm import consultar_llm, LLMTimeoutError, LLMConnectionError,
 from backend.services.consulta_utils_llm import limpiar_salida_llm, recortar_contexto_para_llm
 
 
+def salida_llm_valida(respuesta, pregunta):
+    """
+    Evita respuestas inútiles del LLM como repetir la pregunta
+    o devolver frases genéricas.
+    """
+    if not respuesta:
+        return False
+
+    r = respuesta.lower()
+    p = pregunta.lower()
+
+    # el LLM repite la pregunta
+    if p[:40] in r:
+        return False
+
+    # respuestas genéricas
+    patrones_invalidos = [
+        "no se encuentra",
+        "no tengo información",
+        "no aparece en el contexto",
+        "no puedo encontrar",
+    ]
+
+    if any(x in r for x in patrones_invalidos):
+        return False
+
+    return True
+
+
 def responder_con_llm(pregunta, contexto):
 
     contexto_llm = recortar_contexto_para_llm(contexto, max_chars_total=3000)
@@ -14,17 +43,21 @@ def responder_con_llm(pregunta, contexto):
         raw = consultar_llm(prompt)
         raw = limpiar_salida_llm(raw)
 
+        # NUEVA VALIDACIÓN
+        if not salida_llm_valida(raw, pregunta):
+            return {
+                "respuesta": contexto_llm[:300],
+                "fuente": "RAG (fallback contexto)"
+            }
+
         return {
-            "respuesta": raw or "No encontrado en el contexto.",
+            "respuesta": raw,
             "fuente": "RAG + LLM"
         }
 
     except (LLMTimeoutError, LLMConnectionError, LLMHTTPError):
 
         return {
-            "respuesta": (
-                "No fue posible conectarse al modelo generativo (LLM). "
-                "Sin embargo, se recuperó contexto documental relevante."
-            ),
+            "respuesta": contexto_llm[:300],
             "fuente": "RAG (sin LLM)",
         }
