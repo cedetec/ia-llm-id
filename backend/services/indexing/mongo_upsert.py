@@ -1,10 +1,16 @@
-# services/indexing/mongo_upsert.py
-
-from database import index_collection
+#mongo_upsert.py
+from database.mongo import index_collection
 from datetime import datetime
 
 
-def upsert_chunk(chunk_id, contenido, metadata, embedding, content_hash):
+def upsert_chunk(
+    chunk_id,
+    contenido,
+    metadata,
+    embedding,
+    content_hash,
+    contenido_norm=None
+):
 
     now = datetime.utcnow()
 
@@ -13,6 +19,7 @@ def upsert_chunk(chunk_id, contenido, metadata, embedding, content_hash):
         {
             "$set": {
                 "contenido": contenido,
+                "contenido_norm": contenido_norm,  # 🔥 CLAVE
                 "embedding": embedding,
                 "content_hash": content_hash,
                 "metadata": metadata,
