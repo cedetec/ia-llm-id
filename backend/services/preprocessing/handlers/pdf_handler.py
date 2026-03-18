@@ -1,6 +1,6 @@
 # services/preprocessing/handlers/pdf_handler.py
 
-from database import index_collection
+from database.mongo import index_collection as clean_collection
 from backend.services.mineria_service import extraer_keywords, extraer_entidades_basicas
 
 from backend.services.preprocessing.text_normalizer import normalizar_texto_completo
@@ -31,11 +31,11 @@ def procesar_pdf(doc, nombre_doc):
         payload = {
             "chunk_id": chunk_id,
             "documento": nombre_doc,
-            "fragmento": frag,
+            "contenido": frag,
             "origen": "DOCUMENTO",
             "tipo": "PDF",
             "metadata": {
-                "seccion_detectada": detectar_seccion_legal(frag),
+                "seccion": detectar_seccion_legal(frag),
                 "tipo_documento": tipo_doc,
             },
             "keywords": extraer_keywords(frag),
