@@ -1,6 +1,7 @@
 # ranking_boosts.py
 import re
 from backend.services.ranking_utils import normalizar_txt
+from backend.services.retrieval_text_utils import safe_split
 
 
 def boost_frase(pregunta, texto):
@@ -13,7 +14,7 @@ def boost_frase(pregunta, texto):
     if preg in texto:
         return 80
 
-    tokens = preg.split()
+    tokens = safe_split(preg)
 
     if len(tokens) >= 3:
         for i in range(len(tokens) - 2):
@@ -48,7 +49,7 @@ def boost_posicion(meta):
 
 def penalizar_repeticion(texto):
 
-    words = texto.split()
+    words = safe_split(texto)
 
     if len(words) < 10:
         return 0
