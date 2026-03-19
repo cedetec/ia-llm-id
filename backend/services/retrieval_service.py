@@ -11,40 +11,40 @@ from backend.services.retrieval.ranking_pipeline import rankear_chunks
 from backend.services.retrieval.citation_utils import aplicar_filtro_cita
 from backend.services.retrieval_mongo_repo import find_docs
 from backend.services.retrieval_text_utils import tokens, normalizar
+
 import re
 
+
+# ==========================================
+# 🔥 DETECTOR DE ARTÍCULO
+# ==========================================
+
 MAPA_ARTICULOS = {
-    "primero": 1,
-    "segundo": 2,
-    "tercero": 3,
-    "cuarto": 4,
-    "quinto": 5,
-    "sexto": 6,
-    "septimo": 7,
-    "séptimo": 7,
-    "octavo": 8,
-    "noveno": 9,
-    "decimo": 10,
-    "décimo": 10
+    "primero": 1, "segundo": 2, "tercero": 3, "cuarto": 4,
+    "quinto": 5, "sexto": 6, "septimo": 7, "séptimo": 7,
+    "octavo": 8, "noveno": 9, "decimo": 10, "décimo": 10
 }
 
 def detectar_articulo(pregunta: str):
-
     p = pregunta.lower()
 
-    m_num = re.search(r'art[ií]culo\s+(\d+)', p)
-    if m_num:
-        return int(m_num.group(1))
+    m = re.search(r'art[ií]culo\s+(\d+)', p)
+    if m:
+        return int(m.group(1))
 
-    m_txt = re.search(
+    m = re.search(
         r'art[ií]culo\s+(primero|segundo|tercero|cuarto|quinto|sexto|septimo|séptimo|octavo|noveno|decimo|décimo)',
         p
     )
-
-    if m_txt:
-        return MAPA_ARTICULOS.get(m_txt.group(1))
+    if m:
+        return MAPA_ARTICULOS.get(m.group(1))
 
     return None
+
+
+# ==========================================
+# 🔥 FUNCIÓN PRINCIPAL
+# ==========================================
 
 def obtener_contexto(
     pregunta: str,
@@ -52,538 +52,189 @@ def obtener_contexto(
     tipo_busqueda: str | None = None,
     modo_cita: bool = False,
     filtro_doc: str | None = None,
-    top_k: int = 60,
-    scan: int = 6000,
+    top_k: int = 8,
+    scan: int = 4000,
 ):
 
+    docs = []  # 🔥 FIX CRÍTICO
+
     # --------------------------------------------------
-    # Detectar documento desde la pregunta
+    # 🔎 Detectar documento
     # --------------------------------------------------
 
     nombre_doc = filtro_doc or extraer_nombre_documento(pregunta)
 
     if nombre_doc:
-        top_k = max(top_k, 80)
-
-    if nombre_doc:
         nombre_doc = normalizar(nombre_doc)
-
-    modo_documento_fijado = nombre_doc is not None
-
-    if modo_documento_fijado:
-        scan = max(scan, 6000)
+        scan = max(scan, 5000)
 
     # --------------------------------------------------
-    # Detectar modo cita automáticamente
+    # 🔎 Detectar modo cita
     # --------------------------------------------------
 
     if detectar_modo_cita(pregunta):
         modo_cita = True
-
-    if modo_cita:
-        scan = max(scan, 2500)
-        top_k = max(top_k, 10)
+        top_k = max(top_k, 6)
 
     # --------------------------------------------------
-    # Detectar sección jurídica
+    # 🔎 Detectar intención
     # --------------------------------------------------
 
     seccion = detectar_seccion_simple(pregunta)
+    articulo = detectar_articulo(pregunta)
 
-    articulo_objetivo = detectar_articulo(pregunta)
+    pregunta_norm = normalizar(pregunta)
+
+    busca_objetivo = "objetivo" in pregunta_norm
+    busca_postulacion = any(x in pregunta_norm for x in ["postular", "beneficiario"])
+    busca_requisito = "requisito" in pregunta_norm
+    busca_resolucion = any(x in pregunta_norm for x in ["resuelve", "resolucion", "aprueba"])
 
     # --------------------------------------------------
-    # Construir filtro Mongo
+    # 🔎 Construir filtro
     # --------------------------------------------------
 
-    filtro = construir_filtro_inicial(pregunta, nombre_doc)
+    filtro_base = construir_filtro_inicial(pregunta, None)
 
-    # reforzar filtro por documento si se detectó uno
     if nombre_doc:
-        filtro = {
-            "$and": [
-                filtro,
-                {
-                    "$or": [
-                        {
-                            "metadata.documento": {
-                                "$regex": nombre_doc,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "metadata.documento_norm": {
-                                "$regex": nombre_doc,
-                                "$options": "i"
-                            }
-                        }
-                    ]
-                }
+
+        filtro_doc_q = {
+            "$or": [
+                {"metadata.documento_norm": {"$regex": nombre_doc, "$options": "i"}},
+                {"metadata.documento": {"$regex": nombre_doc, "$options": "i"}}
             ]
         }
 
-    # --------------------------------------------------
-    # Buscar documentos
-    # --------------------------------------------------
+        if filtro_base:
+            filtro = {"$and": [filtro_doc_q, filtro_base]}
+        else:
+            filtro = filtro_doc_q
 
-    docs = find_docs(filtro, scan=scan)
+    else:
+        filtro = filtro_base
 
-    # --------------------------------------------------
-    # NORMALIZAR CONTENIDO (🔥 IMPORTANTE)
-    # --------------------------------------------------
-
-    for d in docs:
-        d["contenido_norm"] = normalizar(
-            d.get("contenido") or d.get("texto_extraido") or ""
-        )
+    print("\n🧪 FILTRO FINAL:", filtro)
 
     # --------------------------------------------------
-    # Filtrar anexos irrelevantes (MEJORADO 🔥)
+    # 🔎 Obtener documentos
     # --------------------------------------------------
 
-    docs_filtrados = []
+    docs = find_docs(filtro, scan=scan) or []
 
-    for d in docs:
+    print("📦 DOCS ENCONTRADOS:", len(docs))
 
-        meta = d.get("metadata") or {}
-        seccion = (meta.get("seccion") or "").lower()
+    # 🔥 fallback si filtro fue demasiado estricto
+    if len(docs) == 0 and nombre_doc:
 
-        if any(x in seccion for x in ["anexo", "tabla", "referencias", "bibliografia"]):
-            continue
-
-        docs_filtrados.append(d)
-
-    docs = docs_filtrados
-
-    if nombre_doc:
-
-        docs = sorted(
-            docs,
-            key=lambda d: nombre_doc in normalizar(
-                (d.get("metadata") or {}).get("documento", "")
-            ),
-            reverse=True
-        )
-
-    # ----------------------------------
-    # Prefiltro por tokens
-    # ----------------------------------
-
-    toks = tokens(pregunta) or []
-
-    if toks:
-
-        docs_token = []
-
-        for d in docs:
-
-            texto = (d.get("contenido") or d.get("texto_extraido") or "").lower()
-
-            coincidencias = sum(1 for t in toks if t in texto)
-
-            if coincidencias >= max(2, len(toks) // 2):
-                docs_token.append(d)
-
-            # permitir textos largos solo si no hay muchos candidatos
-            elif len(docs_token) < 40 and len(texto) > 400:
-                docs_token.append(d)
-
-        # usar solo si no reduce demasiado
-        if len(docs_token) > 30:
-            docs = docs_token
-
-    docs = [
-        d for d in docs
-        if (
-            (d.get("contenido") or d.get("texto_extraido"))
-            and len((d.get("contenido") or d.get("texto_extraido"))) < 6000
-        )
-    ]
-
-    # --------------------------------------------------
-    # fallback: buscar solo por documento
-    # --------------------------------------------------
-
-    if not docs and nombre_doc:
+        print("⚠️ fallback por documento")
 
         docs = find_docs(
             {
-                "metadata.documento": {
+                "metadata.documento_norm": {
                     "$regex": nombre_doc,
                     "$options": "i"
                 }
             },
             scan=scan
-        )
+        ) or []
 
-        docs = [d for d in docs if d.get("contenido")]
+        print("📦 DOCS fallback:", len(docs))
+
+    if len(docs) == 0:
+        return ""
+
+    # --------------------------------------------------
+    # 🔥 Limpieza
+    # --------------------------------------------------
+
+    docs_limpios = []
+
+    for d in docs:
+
+        cont = d.get("contenido") or d.get("texto_extraido")
+
+        if not cont or len(cont) < 40:
+            continue
+
+        cont_norm = normalizar(cont)
+
+        if any(x in cont_norm for x in ["anexo", "tabla", "bibliografia"]):
+            continue
+
+        d["contenido_norm"] = cont_norm
+        docs_limpios.append(d)
+
+    docs = docs_limpios
 
     if not docs:
         return ""
 
     # --------------------------------------------------
-    # Filtrar por sección SOLO si mantiene suficientes candidatos
-    # --------------------------------------------------
-
-    if seccion:
-
-        docs_filtrados = filtrar_posicional(docs, seccion)
-
-        # usar filtro solo si no elimina demasiado
-        if docs_filtrados and len(docs_filtrados) > 3:
-            docs = docs_filtrados
-
-    # --------------------------------------------------
-    # Inicializar pre_score
-    # --------------------------------------------------
-
-    for d in docs:
-        d["pre_score"] = 0
-
-    # --------------------------------------------------
-    # BOOST SI COINCIDE CON SECCION SOLICITADA
-    # --------------------------------------------------
-
-    if seccion:
-
-        for d in docs:
-
-            meta = d.get("metadata") or {}
-
-            sec = meta.get("seccion")
-
-            if not sec:
-                continue
-
-            if seccion.lower() in sec.lower():
-                d["pre_score"] += 6
-            elif sec.lower() in seccion.lower():
-                d["pre_score"] += 4
-
-    # --------------------------------------------------
-    # Tokenizar pregunta
+    # 🔎 Tokens
     # --------------------------------------------------
 
     toks = tokens(pregunta) or []
-
-    if len(toks) < 2:
-        toks = [
-            t for t in pregunta.lower().split()
-            if len(t) > 3
-        ]
-
-    # ----------------------------------
-    # Boost léxico simple
-    # ----------------------------------
-
-    for d in docs:
-
-        cont = (d.get("contenido") or d.get("texto_extraido", "")).lower()
-
-        lex_score = sum(
-            1 for t in toks
-            if len(t) > 3 and t in cont
-        )
-
-        d["lex_boost"] = lex_score
+    toks = [t for t in toks if len(t) > 3]
 
     # --------------------------------------------------
-    # BOOST POR COINCIDENCIA FUERTE DE TOKENS
-    # --------------------------------------------------
-
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        hits = [t for t in toks if len(t) > 3 and t in cont]
-
-        if len(hits) >= 4:
-            d["token_boost"] = 8
-        elif len(hits) == 3:
-            d["token_boost"] = 6
-        elif len(hits) == 2:
-            d["token_boost"] = 3
-        else:
-            d["token_boost"] = 0
-
-
-    # --------------------------------------------------
-    # BOOST POR PROXIMIDAD DE TOKENS
-    # --------------------------------------------------
-
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        posiciones = []
-
-        for t in toks:
-            if len(t) > 3:
-                idx = cont.find(t)
-                if idx != -1:
-                    posiciones.append(idx)
-
-        if len(posiciones) >= 2:
-
-            span = max(posiciones) - min(posiciones)
-
-            if span < 80:
-                d["proximity_boost"] = 4
-            elif span < 160:
-                d["proximity_boost"] = 2
-            else:
-                d["proximity_boost"] = 0
-
-        else:
-            d["proximity_boost"] = 0
-
-    # --------------------------------------------------
-    # BOOST POR DENSIDAD DE TOKENS
-    # --------------------------------------------------
-
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        palabras = cont.split()
-
-        if not palabras:
-            continue
-
-        hits = sum(1 for t in toks if len(t) > 3 and t in cont)
-
-        densidad = hits / len(palabras)
-
-        if densidad > 0.05:
-            d["pre_score"] += 6
-
-        elif densidad > 0.02:
-            d["pre_score"] += 3
-
-    # --------------------------------------------------
-    # BOOST POR ARTICULO JURIDICO
-    # --------------------------------------------------
-
-    if articulo_objetivo:
-
-        for d in docs:
-
-            meta = d.get("metadata") or {}
-
-            art = meta.get("articulo")
-
-            if not art:
-                continue
-
-            m = re.search(r'(\d+)', str(art))
-
-            if not m:
-                continue
-
-            art_num = int(m.group(1))
-
-            if art_num == articulo_objetivo:
-                d["pre_score"] += 20
-
-            elif abs(art_num - articulo_objetivo) == 1:
-                d["pre_score"] += 6
-
-    # --------------------------------------------------
-    # INTENCIÓN JURÍDICA DE LA PREGUNTA
-    # --------------------------------------------------
-
-    pregunta_norm = normalizar(pregunta)
-
-    busca_resolucion = any(x in pregunta_norm for x in [
-        "resuelve", "resolucion", "aprueba", "otorga"
-    ])
-
-    busca_considerando = any(x in pregunta_norm for x in [
-        "considerando", "fundamento", "motivo"
-    ])
-
-    busca_objetivo = any(x in pregunta_norm for x in [
-        "objetivo", "finalidad", "proposito"
-    ])
-
-    # --------------------------------------------------
-    # BOOST POR TIPO DE CHUNK JURIDICO
+    # 🔥 SCORING
     # --------------------------------------------------
 
     for d in docs:
 
         meta = d.get("metadata") or {}
-        tipo = meta.get("tipo_chunk", "")
+        cont = d["contenido_norm"]
 
-        # 🔥 prioridad máxima → lo que realmente responde
-        if tipo == "articulo_resolucion":
-            d["pre_score"] += 12
+        score = 0
 
-        elif tipo == "resolucion":
-            d["pre_score"] += 8
+        # léxico
+        hits = sum(1 for t in toks if t in cont)
 
-        elif tipo == "considerando":
-            d["pre_score"] += 3
+        if hits >= 4: score += 8
+        elif hits == 3: score += 6
+        elif hits == 2: score += 3
 
-        elif tipo == "bases_concurso":
-            d["pre_score"] += 3
+        tipo = meta.get("tipo_chunk")
 
-        elif tipo == "definicion":
-            d["pre_score"] += 2
+        if tipo == "resolucion": score += 10
+        elif tipo == "objetivo": score += 8
+        elif tipo == "postulacion": score += 8
+        elif tipo == "requisito": score += 6
+        elif tipo == "considerando": score += 3
 
-    # --------------------------------------------------
-    # BOOST POR INTENCIÓN JURÍDICA
-    # --------------------------------------------------
+        if busca_objetivo and tipo == "objetivo": score += 10
+        if busca_postulacion and tipo == "postulacion": score += 10
+        if busca_requisito and tipo == "requisito": score += 8
+        if busca_resolucion and tipo == "resolucion": score += 12
 
-    for d in docs:
+        if articulo:
+            art_meta = meta.get("articulo")
+            if art_meta:
+                m = re.search(r'\d+', str(art_meta))
+                if m and int(m.group()) == articulo:
+                    score += 20
 
-        tipo = (d.get("metadata") or {}).get("tipo_chunk", "")
+        if meta.get("chunk_index", 999) < 5:
+            score += 3
 
-        if busca_resolucion and tipo in ["resolucion", "articulo_resolucion"]:
-            d["pre_score"] += 6
+        if meta.get("es_resolutivo"):
+            score += 12
 
-        if busca_considerando and tipo == "considerando":
-            d["pre_score"] += 5
+        d["pre_score"] = score
 
-        if busca_objetivo and tipo in ["bases_concurso", "definicion"]:
-            d["pre_score"] += 4
-
-    # --------------------------------------------------
-    # BOOST POR TITULO DE SECCION
-    # --------------------------------------------------
-
-    for d in docs:
-
-        meta = d.get("metadata") or {}
-
-        titulo = normalizar(meta.get("titulo", ""))
-
-        if not titulo:
-            continue
-
-        for t in toks:
-            if len(t) > 4 and t in titulo:
-                d["pre_score"] += 4
+    docs = sorted(docs, key=lambda x: x["pre_score"], reverse=True)[:200]
 
     # --------------------------------------------------
-    # PENALIZAR TEXTO RUIDOSO (OCR BASURA)
+    # 🔎 Filtro por sección
     # --------------------------------------------------
 
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        # patrones típicos de OCR malo
-        if re.search(r'(tabla\s+\d+|figura\s+\d+|anexo|bibliografia)', cont):
-            d["pre_score"] -= 6
-
-        # exceso de números → probablemente tabla
-        if sum(c.isdigit() for c in cont) > 50:
-            d["pre_score"] -= 4
+    if seccion:
+        filtrados = filtrar_posicional(docs, seccion)
+        if len(filtrados) > 3:
+            docs = filtrados
 
     # --------------------------------------------------
-    # PRE-SCORE PARA RANKING
-    # --------------------------------------------------
-
-    for d in docs:
-
-        base = d.get("lex_boost", 0)
-
-        base += d.get("token_boost", 0)
-
-        base += d.get("proximity_boost", 0)
-
-        d["pre_score"] += min(base, 15)
-
-    # --------------------------------------------------
-    # 🔥 BOOST POR POSICIÓN EN DOCUMENTO (NUEVO)
-    # --------------------------------------------------
-
-    for d in docs:
-
-        idx = (d.get("metadata") or {}).get("chunk_index", 0)
-
-        if idx < 5:
-            d["pre_score"] += 3   # inicio documento
-
-        elif idx > 50:
-            d["pre_score"] -= 1   # muy profundo
-
-    # --------------------------------------------------
-    # 🔥 BOOST POR LONGITUD ÓPTIMA (NUEVO)
-    # --------------------------------------------------
-
-    for d in docs:
-
-        length = len((d.get("contenido") or "").split())
-
-        if 80 <= length <= 250:
-            d["pre_score"] += 3
-
-        elif length < 40:
-            d["pre_score"] -= 2
-
-    # --------------------------------------------------
-    # BOOST SI EL TEXTO CONTIENE "RESUELVO"
-    # --------------------------------------------------
-
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        if re.search(r'\bresuelv[eo]\b', cont):
-            d["pre_score"] += 3
-
-    # --------------------------------------------------
-    # BOOST SI LA PREGUNTA ES DE UN DOCUMENTO ESPECÍFICO
-    # --------------------------------------------------
-
-    if nombre_doc:
-
-        for d in docs:
-
-            meta_doc = normalizar(
-                (d.get("metadata") or {}).get("documento", "")
-            )
-
-            if nombre_doc in meta_doc:
-                d["pre_score"] += 6
-
-    # --------------------------------------------------
-    # BOOST SI LA PREGUNTA PIDE UNA PALABRA O FRASE EXACTA
-    # --------------------------------------------------
-
-    m = re.search(r'["“](.+?)["”]', pregunta)
-
-    if m:
-
-        palabra_objetivo = normalizar(m.group(1))
-
-        for d in docs:
-
-            cont = d.get("contenido_norm", "")
-
-            if palabra_objetivo and palabra_objetivo in cont:
-                d["pre_score"] += 8
-
-    docs = sorted(
-        docs,
-        key=lambda d: d.get("pre_score", 0),
-        reverse=True
-    )[:800]
-
-    for d in docs:
-
-        tipo = (d.get("metadata") or {}).get("tipo_chunk")
-
-        if tipo == "articulo_resolucion":
-            d["pre_score"] *= 1.15
-
-        elif tipo == "resolucion":
-            d["pre_score"] *= 1.08
-
-    # --------------------------------------------------
-    # Ranking híbrido
+    # 🔥 Ranking final
     # --------------------------------------------------
 
     ranked = rankear_chunks(
@@ -593,128 +244,38 @@ def obtener_contexto(
         modo_cita=modo_cita
     )
 
+    # --------------------------------------------------
+    # 🔥 Selección
+    # --------------------------------------------------
+
     resultados = []
     seen = set()
 
-    # --------------------------------------------------
-    # Selección principal
-    # --------------------------------------------------
+    for r in ranked:
 
-    for item in ranked:
+        cont = r.get("contenido")
 
-        if not isinstance(item, dict):
-            continue
-
-        cont = item.get("contenido")
-        meta = item.get("metadata")
-        score = item.get("score", 0)
-
-        if not cont:
-            continue
-
-        if cont in seen:
+        if not cont or cont in seen:
             continue
 
         if modo_cita:
-
-            cont = aplicar_filtro_cita(
-                pregunta,
-                cont,
-                modo_documento_fijado
-            )
-
+            cont = aplicar_filtro_cita(pregunta, cont, nombre_doc is not None)
             if not cont:
                 continue
 
-        cont = cont.strip()
-        resultados.append({
-            "contenido": cont,
-            "metadata": meta,
-            "score": score
-        })
+        resultados.append(cont.strip())
         seen.add(cont)
 
         if len(resultados) >= top_k:
             break
 
-    # --------------------------------------------------
-    # Fallback robusto
-    # --------------------------------------------------
-
+    # fallback final
     if not resultados:
+        for d in docs[:top_k]:
+            cont = d.get("contenido")
+            if cont:
+                resultados.append(cont.strip())
 
-        docs_sorted = sorted(
-            docs,
-            key=lambda d: len(d.get("contenido") or d.get("texto_extraido", "")),
-            reverse=True
-        )
+    contexto = "\n\n".join(resultados)
 
-        for d in docs_sorted:
-
-            cont = d.get("contenido") or d.get("texto_extraido")
-
-            if not cont:
-                continue
-
-            if len(cont) < 80:
-                continue
-
-            if cont in seen:
-                continue
-
-            resultados.append({
-                "contenido": cont,
-                "metadata": d.get("metadata", {}),
-                "score": 0
-            })
-
-            seen.add(cont)
-
-            if len(resultados) >= top_k:
-                break
-
-    # --------------------------------------------------
-    # Reordenar contexto (Lost in the Middle mitigation)
-    # --------------------------------------------------
-
-    if len(resultados) > 4:
-
-        # ordenar por score
-        ordenados = sorted(
-            resultados,
-            key=lambda x: x.get("score", 0),
-            reverse=True
-        )
-
-        # mejores chunks
-        top = ordenados[:2]
-
-        # siguientes chunks
-        medio = ordenados[2:-2]
-
-        # últimos chunks relevantes
-        tail = ordenados[-2:]
-
-        # estrategia: mejores al inicio y final
-        resultados = top + medio + tail[::-1]
-
-    # --------------------------------------------------
-    # Construir contexto final
-    # --------------------------------------------------
-
-    contexto = "\n\n".join(
-        r["contenido"].strip()
-        for r in resultados
-        if r and len(r["contenido"].strip()) > 30
-    )
-
-    print("\nTOP CONTEXTO RAG:")
-    for r in resultados[:5]:
-        print(r["metadata"])
-        print(r["contenido"][:200])
-        print("score:", r["score"])
-        print("----")
-
-    MAX_CONTEXT = 4500
-
-    return contexto[:MAX_CONTEXT]
+    return contexto[:3500]
