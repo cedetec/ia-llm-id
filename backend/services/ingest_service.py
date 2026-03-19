@@ -1,4 +1,4 @@
-#ingest_service.py
+# backend/services/ingest_service.py
 import io, json, hashlib
 import pandas as pd
 import unicodedata
@@ -8,9 +8,9 @@ from bson import ObjectId
 
 from database import documents_collection, fs
 
-from datetime import timezone
+from datetime import datetime, timezone
 
-MAX_FILE_SIZE_MB = 25  # ajusta según tu servidor
+MAX_FILE_SIZE_MB = 25  # límite seguro
 
 def _validar_magic_bytes(contenido: bytes, extension: str):
     if extension == "pdf":
@@ -18,7 +18,6 @@ def _validar_magic_bytes(contenido: bytes, extension: str):
             raise ValueError("El archivo no es un PDF válido")
 
     if extension == "docx":
-        # DOCX es un ZIP (PK)
         if not contenido.startswith(b"PK"):
             raise ValueError("El archivo no es un DOCX válido")
 
@@ -58,7 +57,6 @@ def normalizar_nombre_documento(nombre: str) -> str:
 def _sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
-
 async def procesar_documento(file):
     contenido: bytes = await file.read()
 
@@ -94,7 +92,7 @@ async def procesar_documento(file):
         doc_base["contenido"] = df.to_dict(orient="records")
 
         documents_collection.update_one(
-            {"nombre": filename},
+            {"sha256": sha256},
             {"$set": doc_base},
             upsert=True
         )
