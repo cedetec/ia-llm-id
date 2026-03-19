@@ -1,5 +1,3 @@
-#preprocess_service.py
-
 from database.mongo import clean_collection
 import re
 
