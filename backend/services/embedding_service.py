@@ -36,7 +36,7 @@ def embed_text(text: str, mode: str = "passage") -> list[float]:
         text = text[:MAX_CHARS]
 
     MAX_WORDS = 350
-    words = text.split()
+    words = text.split() if isinstance(text, str) else []
     if len(words) > MAX_WORDS:
         text = " ".join(words[:MAX_WORDS])
 
