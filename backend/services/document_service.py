@@ -1,18 +1,22 @@
-# backend/services/document_service.py
+#document_service.py
 
 from __future__ import annotations
 
 import os
 from datetime import datetime
 from fastapi import UploadFile
-from database import documents_collection, clean_collection, fs
-from backend.services.preprocess_service import preprocesar_documentos
+
+from database.mongo import documents_collection, clean_collection, fs
+from backend.utils.ocr_pdf_extractor import extract_text_smart
 
 import pdfplumber
-import uuid
-
 import hashlib
+import re
 
+
+# ==========================================================
+# 1️⃣ SUBIR DOCUMENTO
+# ==========================================================
 
 async def subir_documento_service(file: UploadFile):
 
@@ -22,17 +26,16 @@ async def subir_documento_service(file: UploadFile):
     content = await file.read()
     sha256 = hashlib.sha256(content).hexdigest()
 
-    # Verificar si ya existe
     existing = documents_collection.find_one({"sha256": sha256})
+
     if existing:
         return {
-            "message": "Documento ya existía (mismo hash), no se re-subió",
+            "message": "Documento ya existía (mismo hash)",
             "archivo": file.filename,
             "gridfs_id": str(existing.get("gridfs_id")),
             "sha256": sha256
         }
 
-    # Guardar en GridFS
     gridfs_id = fs.put(
         content,
         filename=file.filename,
@@ -45,8 +48,7 @@ async def subir_documento_service(file: UploadFile):
         "gridfs_id": gridfs_id,
         "sha256": sha256,
         "fecha_subida": datetime.utcnow(),
-        "texto": "",
-        "texto_ok": False,
+        "texto_extraido_ok": False
     }
 
     documents_collection.insert_one(doc_payload)
@@ -58,58 +60,110 @@ async def subir_documento_service(file: UploadFile):
         "sha256": sha256
     }
 
+
 # ==========================================================
-# 2️⃣ EXTRAER TEXTO (PDF / DOCX)
+# 2️⃣ EXTRAER TEXTO
 # ==========================================================
 
 def extraer_documentos(doc: str | None = None):
 
-    query = {"nombre": doc} if doc else {}
+    query = {"nombre": doc.lower()} if doc else {}
 
     procesados = 0
 
-    for d in documents_collection.find(query):
+    for d in fs.find():
 
-        ruta = d.get("ruta_archivo")
-        tipo = (d.get("tipo") or "").upper()
+        filename = d.filename.lower()
 
-        if not ruta or not os.path.exists(ruta):
+        if doc and filename != doc.lower():
             continue
+
+        print("📄 Procesando:", filename)
+
+        gridfs_id = d._id
+
+        file_data = fs.get(gridfs_id)
+
+        ruta_tmp = f"/tmp/{filename}"
+
+        with open(ruta_tmp, "wb") as f:
+            f.write(file_data.read())
 
         texto = ""
 
-        if tipo == "PDF":
+        try:
+            with pdfplumber.open(ruta_tmp) as pdf:
+                for page in pdf.pages:
+                    txt = page.extract_text()
+                    if txt:
+                        texto += txt + "\n\n"
+
+        except Exception as e:
+            print("⚠ Error leyendo PDF:", e)
+
+        if len(texto.strip()) < 100:
+
+            print("🧠 PDF escaneado detectado → activando OCR...")
+
             try:
-                with pdfplumber.open(ruta) as pdf:
-                    for page in pdf.pages:
-                        texto += page.extract_text() or ""
-                        texto += "\n\n"
+                texto = extract_text_smart(ruta_tmp)
             except Exception as e:
-                print("Error PDF:", e)
+                print("❌ Error OCR:", e)
                 continue
 
-        elif tipo == "DOCX":
-            try:
-                from docx import Document
-                docx = Document(ruta)
-                texto = "\n".join(p.text for p in docx.paragraphs)
-            except Exception as e:
-                print("Error DOCX:", e)
-                continue
+        documento = filename
 
-        if not texto.strip():
-            continue
+        # ==================================================
+        # LIMPIEZA OCR
+        # ==================================================
 
-        documento = (d.get("nombre") or "").lower()
+        texto = re.sub(r'\(cid:\d+\)', ' ', texto)
+        texto = re.sub(r'[^\x00-\x7FáéíóúÁÉÍÓÚñÑ0-9\.,;:\-\(\) ]', ' ', texto)
+        texto = texto.replace("\n", " ")
+        texto = re.sub(r'\s+', ' ', texto)
 
-        if not documento:
-            continue
+        # ==================================================
+        # FRAGMENTACIÓN
+        # ==================================================
 
-        fragmentos = texto.split("\n\n")
+        fragmentos = re.split(
+            r'\.\s+(?=[A-ZÁÉÍÓÚÑ])|\n{2,}',
+            texto
+        )
+
+        fragmentos = [
+            f.strip()
+            for f in fragmentos
+            if len(f.strip()) > 40
+        ]
+
+        # ==================================================
+        # CONTROL DE TAMAÑO
+        # ==================================================
+
+        MAX_FRAGMENT = 1800
+
+        fragmentos_finales = []
 
         for f in fragmentos:
 
-            f = f.strip()
+            if len(f) <= MAX_FRAGMENT:
+                fragmentos_finales.append(f)
+
+            else:
+
+                for i in range(0, len(f), MAX_FRAGMENT):
+                    fragmentos_finales.append(f[i:i+MAX_FRAGMENT])
+
+        fragmentos = fragmentos_finales
+
+        # ==================================================
+        # INSERTAR EN CLEAN COLLECTION
+        # ==================================================
+
+        inserted = 0
+
+        for f in fragmentos:
 
             if len(f) < 40:
                 continue
@@ -119,11 +173,49 @@ def extraer_documentos(doc: str | None = None):
                 "fragmento": f
             })
 
-        documents_collection.update_one(
-            {"_id": d["_id"]},
+            inserted += 1
+
+        print(f"🧩 Fragmentos creados: {inserted}")
+
+        # ==================================================
+        # MARCAR COMO PROCESADO
+        # ==================================================
+
+        procesados += 1
+
+    return {
+        "documentos_extraidos": procesados
+    }
+
+def preprocesar_documentos(doc: str | None = None):
+
+    query = {"documento": doc.lower()} if doc else {}
+
+    procesados = 0
+
+    cursor = clean_collection.find(query)
+
+    for row in cursor:
+
+        texto = row.get("fragmento")
+
+        if not texto:
+            continue
+
+        # limpieza básica
+        texto = texto.strip()
+
+        texto = re.sub(r'\s+', ' ', texto)
+
+        texto = texto.replace(" ,", ",")
+        texto = texto.replace(" .", ".")
+
+        clean_collection.update_one(
+            {"_id": row["_id"]},
             {
                 "$set": {
-                    "texto_extraido_ok": True,
+                    "fragmento": texto,
+                    "preprocesado": True
                 }
             }
         )
@@ -131,5 +223,5 @@ def extraer_documentos(doc: str | None = None):
         procesados += 1
 
     return {
-        "documentos_extraidos": procesados
+        "fragmentos_preprocesados": procesados
     }
