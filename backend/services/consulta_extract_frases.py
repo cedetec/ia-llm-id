@@ -162,30 +162,22 @@ def _recortar_prefijo_basura(s: str) -> str:
     return s
 
 def _es_basura(frase: str) -> bool:
-    f = (frase or "").strip()
+    f = (frase or "").strip().lower()
 
-    if not f:
+    if len(f) < 40:
         return True
 
-    if _RE_RELLENO.search(f):
-        return True
-        
-    if _RE_BASURA_INICIO.search(f):
-        return True
-
-    ADMIN_BASURA = [
-        "oficial de partes",
-        "repositorio de archivo institucional",
-        "comite de asignacion",
-        "distribuyase",
-        "distribúyase",
-        "anotese y comuniquese",
-        "anótese y comuníquese",
-        "direccion nacional",
-        "contralor general",
+    basura = [
+        "carta de factibilidad",
+        "tabla",
+        "anexo",
+        "figura",
+        "ver documento",
+        "formulario",
+        "correo electrónico",
     ]
 
-    if any(x in f.lower() for x in ADMIN_BASURA):
+    if any(b in f for b in basura):
         return True
 
     return False
@@ -214,7 +206,7 @@ def limpiar_ocr_extra(s: str) -> str:
 
     return s.strip()
 
-def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 260) -> Optional[str]:
+def extraer_frase_con_patron(contexto: str, patron: str, *, window: int = 420) -> Optional[str]:
     if not contexto or not patron:
         return None
 
