@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Optional
+from backend.services.retrieval_text_utils import safe_split
 
 _RE_META = re.compile(r"\[DOC=.*?\]", flags=re.IGNORECASE)
 
@@ -190,7 +191,7 @@ def es_ruido(frase: str) -> bool:
         return True
 
     # texto repetitivo típico OCR
-    if len(set(f.split())) < 5:
+    if len(set(safe_split(f))) < 5:
         return True
 
     return False
@@ -221,6 +222,22 @@ def frase_completa(f: str) -> bool:
 
 
 def score_semantico(frase: str, pregunta: str) -> float:
+
+    # 🔥 FIX CRÍTICO GLOBAL
+    if isinstance(frase, dict):
+        frase = frase.get("contenido") or frase.get("texto") or ""
+
+    elif isinstance(frase, list):
+        frase = " ".join(
+            f.get("contenido", "") if isinstance(f, dict) else str(f)
+            for f in frase
+        )
+
+    if not isinstance(frase, str):
+        return 0.0
+
+    if not isinstance(pregunta, str):
+        return 0.0
 
     STOP = {"el", "la", "los", "las", "de", "del", "para", "en", "por", "y", "o"}
 
@@ -335,3 +352,19 @@ def extraer_palabra_entre_comillas(pregunta: str) -> Optional[str]:
         return m.group(1).strip().lower()
 
     return None
+
+def normalizar_contexto(contexto):
+
+    if isinstance(contexto, list):
+        return " ".join(
+            d.get("contenido", "") if isinstance(d, dict) else str(d)
+            for d in contexto
+        )
+
+    if isinstance(contexto, dict):
+        return contexto.get("contenido") or contexto.get("texto") or ""
+
+    if isinstance(contexto, str):
+        return contexto
+
+    return ""
