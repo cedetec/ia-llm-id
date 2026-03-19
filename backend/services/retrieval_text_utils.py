@@ -114,6 +114,26 @@ def tokens(pregunta: str) -> List[str]:
 
     return final
 
+def safe_split(x):
+    # 🔥 FIX GLOBAL (anti dict/list bugs)
+
+    if isinstance(x, dict):
+        x = x.get("contenido") or x.get("texto") or ""
+
+    elif isinstance(x, list):
+        partes = []
+        for e in x:
+            if isinstance(e, dict):
+                partes.append(e.get("contenido") or e.get("texto") or "")
+            elif isinstance(e, str):
+                partes.append(e)
+        x = " ".join(partes)
+
+    if not isinstance(x, str):
+        return []
+
+    return x.split()
+
 # =========================================================
 # NORMALIZACIÓN LINEAL (para bloques largos)
 # =========================================================
