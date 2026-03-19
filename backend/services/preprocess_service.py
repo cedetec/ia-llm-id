@@ -1,44 +1,46 @@
-# services/preprocessing/preprocess_service.py
+#preprocess_service.py
 
-from database import documents_collection
-from backend.services.preprocessing.handlers.csv_handler import procesar_csv
-from backend.services.preprocessing.handlers.pdf_handler import procesar_pdf
+from database.mongo import clean_collection
+import re
 
 
 def preprocesar_documentos(doc=None):
 
-    docs_procesados = 0
-    docs_saltados = 0
-    total_chunks = 0
+    procesados = 0
 
-    query = {"texto": {"$exists": True}}
+    query = {"documento": doc.lower()} if doc else {}
 
-    if doc:
-        query["nombre"] = doc
+    cursor = clean_collection.find(query)
 
-    for d in documents_collection.find(query):
+    for row in cursor:
 
-        if not isinstance(d, dict):
-            docs_saltados += 1
+        texto = row.get("fragmento")
+
+        if not texto:
             continue
 
-        nombre_doc = d.get("nombre", "").lower()
-        tipo = (d.get("tipo") or "").upper()
+        texto = texto.strip()
 
-        if tipo == "CSV":
-            total_chunks += procesar_csv(d, nombre_doc)
-            docs_procesados += 1
-            continue
+        # normalizar espacios
+        texto = re.sub(r'\s+', ' ', texto)
 
-        if tipo in ("PDF", "DOCX") and d.get("texto_extraido"):
-            total_chunks += procesar_pdf(d, nombre_doc)
-            docs_procesados += 1
-            continue
+        # limpieza básica
+        texto = texto.replace(" ,", ",")
+        texto = texto.replace(" .", ".")
+        texto = texto.replace(" :", ":")
 
-        docs_saltados += 1
+        clean_collection.update_one(
+            {"_id": row["_id"]},
+            {
+                "$set": {
+                    "fragmento": texto,
+                    "preprocesado": True
+                }
+            }
+        )
+
+        procesados += 1
 
     return {
-        "fragmentos_creados": total_chunks,
-        "docs_procesados": docs_procesados,
-        "docs_saltados": docs_saltados,
+        "fragmentos_preprocesados": procesados
     }
