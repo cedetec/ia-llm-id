@@ -66,7 +66,7 @@ def obtener_contexto(
         top_k = max(top_k, 80)
 
     if nombre_doc:
-        nombre_doc = nombre_doc.lower().strip()
+        nombre_doc = normalizar(nombre_doc)
 
     modo_documento_fijado = nombre_doc is not None
 
@@ -101,13 +101,23 @@ def obtener_contexto(
     # reforzar filtro por documento si se detectó uno
     if nombre_doc:
         filtro = {
-            "$or": [
-                {"metadata.documento_norm": nombre_doc},
+            "$and": [
+                filtro,
                 {
-                    "metadata.documento_norm": {
-                        "$regex": nombre_doc,
-                        "$options": "i"
-                    }
+                    "$or": [
+                        {
+                            "metadata.documento": {
+                                "$regex": nombre_doc,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "metadata.documento_norm": {
+                                "$regex": nombre_doc,
+                                "$options": "i"
+                            }
+                        }
+                    ]
                 }
             ]
         }
@@ -117,22 +127,6 @@ def obtener_contexto(
     # --------------------------------------------------
 
     docs = find_docs(filtro, scan=scan)
-
-    print("TIPOS:", [
-        (d.get("metadata") or {}).get("tipo_chunk")
-        for d in docs[:10]
-    ])
-    print("TOP PRE_SCORE:", [
-        (
-            (d.get("metadata") or {}).get("tipo_chunk"),
-            d.get("pre_score")
-        )
-        for d in docs[:10]
-    ])
-    print("PRIMEROS DOCS:", [
-        (d.get("metadata") or {}).get("documento_norm")
-        for d in docs[:10]
-    ])
 
     # --------------------------------------------------
     # NORMALIZAR CONTENIDO (🔥 IMPORTANTE)
@@ -401,8 +395,7 @@ def obtener_contexto(
     pregunta_norm = normalizar(pregunta)
 
     busca_resolucion = any(x in pregunta_norm for x in [
-        "resuelve", "resolucion", "aprueba", "otorga",
-        "cita", "frase", "extrae", "texto"
+        "resuelve", "resolucion", "aprueba", "otorga"
     ])
 
     busca_considerando = any(x in pregunta_norm for x in [
@@ -424,30 +417,10 @@ def obtener_contexto(
 
         # 🔥 prioridad máxima → lo que realmente responde
         if tipo == "articulo_resolucion":
-            d["pre_score"] += 25
+            d["pre_score"] += 12
 
         elif tipo == "resolucion":
-
-            cont = d.get("contenido_norm") or normalizar(
-                d.get("contenido") or ""
-            )
-
-            # 🔥 RESOLUTIVO REAL (TOP PRIORIDAD)
-            if re.search(r'\bresuelv[eo]\b', cont):
-                d["pre_score"] += 80
-
-            elif re.search(r'aprueb[a-z]*.*bases', cont):
-                d["pre_score"] += 70
-
-            elif re.search(r'aprueb', cont):
-                d["pre_score"] += 50
-
-            # encabezado (menos importante)
-            elif re.search(r'resolucion|res\.', cont):
-                d["pre_score"] += 20
-
-            else:
-                d["pre_score"] -= 5  # 🔥 castigar basura tipo VISTOS
+            d["pre_score"] += 8
 
         elif tipo == "considerando":
             d["pre_score"] += 3
@@ -466,14 +439,14 @@ def obtener_contexto(
 
         tipo = (d.get("metadata") or {}).get("tipo_chunk", "")
 
-        if busca_resolucion and tipo not in ["resolucion", "articulo_resolucion"]:
-            d["pre_score"] -= 8
+        if busca_resolucion and tipo in ["resolucion", "articulo_resolucion"]:
+            d["pre_score"] += 6
 
         if busca_considerando and tipo == "considerando":
             d["pre_score"] += 5
 
         if busca_objetivo and tipo in ["bases_concurso", "definicion"]:
-            d["pre_score"] += 12
+            d["pre_score"] += 4
 
     # --------------------------------------------------
     # BOOST POR TITULO DE SECCION
@@ -508,12 +481,6 @@ def obtener_contexto(
         if sum(c.isdigit() for c in cont) > 50:
             d["pre_score"] -= 4
 
-    if nombre_doc:
-        docs = [
-            d for d in docs
-            if (d.get("metadata") or {}).get("documento_norm", "") == nombre_doc
-        ]
-
     # --------------------------------------------------
     # PRE-SCORE PARA RANKING
     # --------------------------------------------------
@@ -527,17 +494,6 @@ def obtener_contexto(
         base += d.get("proximity_boost", 0)
 
         d["pre_score"] += min(base, 15)
-
-    # 🔥 CASTIGO A TEXTO GENÉRICO LARGO (CLAVE)
-    for d in docs:
-
-        cont = d.get("contenido_norm") or normalizar(
-            d.get("contenido") or ""
-        )
-
-        # textos largos sin señal resolutiva → basura típica
-        if len(cont.split()) > 80 and not re.search(r'resuelv|aprueb', cont):
-            d["pre_score"] -= 15
 
     # --------------------------------------------------
     # 🔥 BOOST POR POSICIÓN EN DOCUMENTO (NUEVO)
@@ -573,12 +529,10 @@ def obtener_contexto(
 
     for d in docs:
 
-        cont = d.get("contenido_norm") or normalizar(
-            d.get("contenido") or ""
-        )
+        cont = d.get("contenido_norm", "")
 
         if re.search(r'\bresuelv[eo]\b', cont):
-            d["pre_score"] += 100
+            d["pre_score"] += 3
 
     # --------------------------------------------------
     # BOOST SI LA PREGUNTA ES DE UN DOCUMENTO ESPECÍFICO
@@ -588,10 +542,12 @@ def obtener_contexto(
 
         for d in docs:
 
-            meta_doc = (d.get("metadata") or {}).get("documento_norm", "")
+            meta_doc = normalizar(
+                (d.get("metadata") or {}).get("documento", "")
+            )
 
-            if nombre_doc == meta_doc:
-                d["pre_score"] += 8
+            if nombre_doc in meta_doc:
+                d["pre_score"] += 6
 
     # --------------------------------------------------
     # BOOST SI LA PREGUNTA PIDE UNA PALABRA O FRASE EXACTA
@@ -610,41 +566,11 @@ def obtener_contexto(
             if palabra_objetivo and palabra_objetivo in cont:
                 d["pre_score"] += 8
 
-    # 🔥 PENALIZAR TEXTO GENÉRICO LEGAL (VISTOS, MARCO, ETC)
-    for d in docs:
-
-        cont = d.get("contenido_norm", "")
-
-        if re.search(r'\bvisto[s]?\b|\bconsiderando\b', cont):
-            d["pre_score"] -= 10
-
-        if "marco normativo" in cont:
-            d["pre_score"] -= 8
-
-    # --------------------------------------------------
-    # 🔥 FILTRO DIRECTO PARA CITAS (ULTRA CLAVE)
-    # --------------------------------------------------
-
-    if modo_cita:
-
-        docs_filtrados = []
-
-        for d in docs:
-
-            cont = d.get("contenido_norm") or ""
-
-            # 🔥 SOLO FRASES QUE PUEDEN SER CITADAS
-            if re.search(r'resuelv|aprueb|resolucion|res\.|\d{1,2}/\d{1,2}/\d{4}', cont):
-                docs_filtrados.append(d)
-
-        if len(docs_filtrados) >= 3:
-            docs = docs_filtrados
-
     docs = sorted(
         docs,
         key=lambda d: d.get("pre_score", 0),
         reverse=True
-    )[:120]
+    )[:800]
 
     for d in docs:
 
@@ -656,126 +582,23 @@ def obtener_contexto(
         elif tipo == "resolucion":
             d["pre_score"] *= 1.08
 
-    for d in docs:
-        d["score_total"] = d.get("pre_score", 0)
-
-    # 🔥 FILTRO REAL POR INTENCIÓN (ARREGLADO)
-    if busca_resolucion:
-
-        docs_res = []
-
-        for d in docs:
-
-            meta = d.get("metadata") or {}
-            cont = d.get("contenido_norm", "")
-
-            if meta.get("es_resolutivo"):
-                docs_res.append(d)
-                continue
-
-            if re.search(r'resolucion|res\.|resuelv|aprueb', cont):
-                docs_res.append(d)
-
-        if len(docs_res) >= 3:
-            docs = docs_res
-
-    # --------------------------------------------------
-    # 🔥 DEBUG FINAL (CRÍTICO)
-    # --------------------------------------------------
-
-    print("\n🔥 DEBUG RESOLUTIVOS:")
-    for d in docs[:20]:
-        cont = (d.get("contenido") or "")[:120]
-        print(
-            "RESUELVO" in cont.upper(),
-            "| score:", d.get("pre_score"),
-            "|", cont
-        )
-
-    print("\nCANDIDATOS FINALES:")
-    for d in docs[:10]:
-        print(d.get("contenido")[:200])
-        print("score:", d.get("pre_score"))
-        print("----")
-
     # --------------------------------------------------
     # Ranking híbrido
     # --------------------------------------------------
 
-    # 🔥 USAR DIRECTAMENTE docs (NO romper pre_score)
-    ranked = docs
-
-    # 🔥 asegurar que el mejor no se pierda
-    if docs:
-        best_doc = max(docs, key=lambda x: x.get("pre_score", 0))
-        if best_doc not in ranked:
-            ranked.insert(0, best_doc)
-
-    # 🔥 ORDEN FINAL REAL (EL MÁS IMPORTANTE)
-    ranked = sorted(
-        ranked,
-        key=lambda x: x.get("pre_score", 0),
-        reverse=True
+    ranked = rankear_chunks(
+        pregunta,
+        docs,
+        toks,
+        modo_cita=modo_cita
     )
 
-    # 🔥 FILTRO FINAL SEMÁNTICO (ULTRA IMPORTANTE)
-    if modo_cita:
-
-        ranked_filtrado = []
-
-        for r in ranked:
-
-            cont = normalizar(r.get("contenido", ""))
-
-            if re.search(r'resuelv|aprueb|resolucion|objetivo|postul', cont):
-                ranked_filtrado.append(r)
-
-        if len(ranked_filtrado) >= 2:
-            ranked = ranked_filtrado
-
-    # 🔥 HARD FILTER FINAL (AJUSTADO)
-    ranked = [
-        r for r in ranked
-        if r.get("pre_score", 0) > 5
-    ]
-
-    # 🔥 fallback seguro
-    if not ranked:
-        ranked = docs[:10] if docs else []
-
-    print("\nTOP RANKED FINAL:")
-    for r in ranked[:5]:
-        print(r.get("contenido")[:150])
-        print("pre_score:", r.get("pre_score"))
-        print("----")
-
-    if not isinstance(ranked, list):
-        ranked = []
-
-    # 🔥 SI ES CITA → USAR DIRECTAMENTE EL MEJOR CHUNK
-    if modo_cita and ranked:
-
-        for r in ranked:
-
-            cont = r.get("contenido") or ""
-            cont_norm = normalizar(cont)
-
-            if re.search(r'aprueb.*bases|resuelv', cont_norm):
-                return cont[:400]
-
-        # fallback
-        best = ranked[0]
-        cont = best.get("contenido")
-
-        if cont:
-            return cont[:400]
+    resultados = []
+    seen = set()
 
     # --------------------------------------------------
     # Selección principal
     # --------------------------------------------------
-
-    resultados = []
-    seen = set()
 
     for item in ranked:
 
@@ -783,12 +606,8 @@ def obtener_contexto(
             continue
 
         cont = item.get("contenido")
-
-        if not isinstance(cont, str):
-            cont = str(cont or "")
-
         meta = item.get("metadata")
-        score = item.get("pre_score", 0)
+        score = item.get("score", 0)
 
         if not cont:
             continue
@@ -798,38 +617,24 @@ def obtener_contexto(
 
         if modo_cita:
 
-            cont_filtrado = aplicar_filtro_cita(
+            cont = aplicar_filtro_cita(
                 pregunta,
                 cont,
                 modo_documento_fijado
             )
 
-            if not isinstance(cont_filtrado, str):
-                cont_filtrado = str(cont_filtrado or "")
-
-            # 🔥 DESCARTAR SI NO SIRVE
-            if not cont_filtrado or len(cont_filtrado.split()) < 5:
-                continue
-
-            cont = cont_filtrado
-
-            # 🔥 FILTRO DURO FINAL
-            cont_norm = normalizar(cont)
-
-            if not re.search(r'resuelv|aprueb|resolucion|res\.|\d{1,2}/\d{1,2}/\d{4}', cont_norm):
+            if not cont:
                 continue
 
         cont = cont.strip()
-
         resultados.append({
             "contenido": cont,
             "metadata": meta,
-            "score": score,
+            "score": score
         })
-
         seen.add(cont)
 
-        if len(resultados) >= min(top_k, 40):
+        if len(resultados) >= top_k:
             break
 
     # --------------------------------------------------
@@ -838,28 +643,35 @@ def obtener_contexto(
 
     if not resultados:
 
-        # ordenar primero (preliminar)
-        docs = sorted(
+        docs_sorted = sorted(
             docs,
-            key=lambda d: d.get("pre_score", 0),
-            reverse=True
-        )[:120]
-
-        # aplicar ajustes finales
-        for d in docs:
-            tipo = (d.get("metadata") or {}).get("tipo_chunk")
-
-            if tipo == "articulo_resolucion":
-                d["pre_score"] *= 1.15
-            elif tipo == "resolucion":
-                d["pre_score"] *= 1.08
-
-        # 🔥 REORDENAR OTRA VEZ (CLAVE)
-        docs = sorted(
-            docs,
-            key=lambda d: d.get("pre_score", 0),
+            key=lambda d: len(d.get("contenido") or d.get("texto_extraido", "")),
             reverse=True
         )
+
+        for d in docs_sorted:
+
+            cont = d.get("contenido") or d.get("texto_extraido")
+
+            if not cont:
+                continue
+
+            if len(cont) < 80:
+                continue
+
+            if cont in seen:
+                continue
+
+            resultados.append({
+                "contenido": cont,
+                "metadata": d.get("metadata", {}),
+                "score": 0
+            })
+
+            seen.add(cont)
+
+            if len(resultados) >= top_k:
+                break
 
     # --------------------------------------------------
     # Reordenar contexto (Lost in the Middle mitigation)
@@ -873,8 +685,6 @@ def obtener_contexto(
             key=lambda x: x.get("score", 0),
             reverse=True
         )
-
-
 
         # mejores chunks
         top = ordenados[:2]
