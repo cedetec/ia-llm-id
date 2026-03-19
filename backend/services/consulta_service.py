@@ -41,8 +41,6 @@ def procesar_consulta(pregunta: str) -> dict:
     # -------------------------------------------------
     # ROUTER PREGUNTAS ESTRUCTURADAS
     # -------------------------------------------------
-
-    pregunta_low = pregunta_norm.lower()
     
     if any(x in pregunta_low for x in [
         "numero de resolucion",
@@ -90,7 +88,7 @@ def procesar_consulta(pregunta: str) -> dict:
             if any(x in pregunta_low for x in ["objetivo del concurso", "objetivo general"]):
 
                 m = re.search(
-                    r'(objetivo[^\.]{40,250}\.)',
+                    r'(objetivo[^\.]{40,300}\.)',
                     contexto,
                     re.I
                 )
@@ -105,7 +103,7 @@ def procesar_consulta(pregunta: str) -> dict:
             if any(x in pregunta_low for x in ["requisito", "pueden postular", "quienes pueden postular"]):
 
                 m = re.search(
-                    r'((pueden|podran|quienes)\s+postular[^\.]{40,250}\.)',
+                    r'((pueden|podran|quienes)\s+postular[^\.]{40,300}\.)',
                     contexto,
                     re.I
                 )
@@ -130,7 +128,12 @@ def procesar_consulta(pregunta: str) -> dict:
         docfile = docfile.lower()
 
     contexto = recuperar_contexto(pregunta, es_modo_cita, docfile)
-    print("\nTAMAÑO CONTEXTO:", len(contexto))
+
+    if isinstance(contexto, str):
+        contexto = contexto.strip()
+
+    if contexto:
+        print("\nTAMAÑO CONTEXTO:", len(contexto))
 
     if not contexto:
         return {
@@ -157,6 +160,52 @@ def procesar_consulta(pregunta: str) -> dict:
             "fuente": "RAG + extracción estructurada"
         }
 
+    # -------------------------------------------------
+    # 🔥 RE-RANKING FINAL DE CONTEXTO (SUAVE)
+    # -------------------------------------------------
+
+    if isinstance(contexto, str):
+
+        contexto = re.sub(r'\s+', ' ', contexto)
+
+        bloques = re.split(r'\[Fragmento\s+\d+\]', contexto)
+
+        bloques = [b.strip() for b in bloques if len(b.strip()) > 50]
+
+        bloques = bloques[:40]
+
+        def score_bloque(b):
+            b_low = b.lower()
+            p_low = pregunta_low
+
+            score = 0
+
+            # match simple
+            score += sum(1 for w in p_low.split() if w in b_low)
+
+            # 🔥 boost jurídico fuerte
+            if "aprueba" in b_low or "apruebase" in b_low:
+                score += 4
+
+            if "resuelve" in b_low or "resuelvo" in b_low:
+                score += 4
+
+            if "objetivo" in b_low:
+                score += 3
+
+            if "postular" in b_low:
+                score += 2
+
+            # 🔥 penalizar ruido OCR
+            if re.search(r'\b[A-Z]{6,}\b', b):
+                score -= 3
+
+            return score
+
+        bloques = sorted(bloques, key=score_bloque, reverse=True)
+
+        contexto = "\n\n".join(bloques[:5])
+
     # 4️⃣ Citas
     if es_modo_cita:
 
@@ -165,16 +214,12 @@ def procesar_consulta(pregunta: str) -> dict:
         if resp_cita:
             return resp_cita
 
-        # fallback LLM
-        respuesta_llm = responder_con_llm(
-            f"Pregunta: {pregunta}\n\nContexto:\n{contexto}",
-            None
-        )
-
+        # si no se encuentra cita real
         return {
-            "respuesta": respuesta_llm,
-            "fuente": "RAG + LLM fallback"
+            "respuesta": "No se encontró una frase textual exacta, pero se identificó contenido relevante en el documento. Intenta reformular la pregunta para mayor precisión.",
+            "fuente": "RAG (sin coincidencia)"
         }
+
 
     # 5️⃣ LLM con traducción
     prompt_en = traducir(
@@ -195,58 +240,3 @@ def procesar_consulta(pregunta: str) -> dict:
         "respuesta": respuesta_es,
         "fuente": "RAG + LLM traducido"
     }
-
-
-#embedding_service.py
-
-from sentence_transformers import SentenceTransformer
-import re
-
-_model = None
-
-def _get_model():
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("intfloat/multilingual-e5-base")
-    return _model
-
-
-def _normalize_for_embedding(texto: str) -> str:
-    if not texto:
-        return ""
-
-    texto = re.sub(r"\[DOC:[^\]]+\]", "", texto)
-    texto = re.sub(r"\s+", " ", texto)
-    return texto.strip()
-
-
-def embed_text(text: str, mode: str = "passage") -> list[float]:
-
-    if not text or not text.strip():
-        raise ValueError("Texto vacío no puede ser embebido")
-
-    if mode not in {"query", "passage"}:
-        raise ValueError("mode debe ser 'query' o 'passage'")
-
-    text = _normalize_for_embedding(text)
-
-    MAX_CHARS = 2000
-    if len(text) > MAX_CHARS:
-        text = text[:MAX_CHARS]
-
-    MAX_WORDS = 350
-    words = text.split()
-    if len(words) > MAX_WORDS:
-        text = " ".join(words[:MAX_WORDS])
-
-    text = f"{mode}: {text}"
-
-    model = _get_model()
-
-    embedding = model.encode(
-        text,
-        normalize_embeddings=True,
-        convert_to_numpy=True
-    )
-
-    return embedding.tolist()
