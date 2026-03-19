@@ -85,11 +85,6 @@ def limpiar_ocr(texto: str) -> str:
         flags=re.I
     )
 
-    # 🔥 normalizar variantes de resolución
-    texto = re.sub(r'RES\s*\.\s*N', 'RESOLUCION N', texto, flags=re.I)
-    texto = re.sub(r'RESOLUCI[ÓO]N\s*\n\s*N', 'RESOLUCION N', texto, flags=re.I)
-    texto = re.sub(r'N[°º]\s*', 'N ', texto, flags=re.I)
-
     return texto
 
 
@@ -102,33 +97,12 @@ def subdividir_bloque(texto, max_chars=900):
     if len(texto) <= max_chars:
         return [texto]
 
-    # 🔥 separar fuerte por "APRUEBA"
-    texto = re.sub(r'(APRUÉBASE|APRUEBA)', r'\n\1', texto, flags=re.I)
-
-    # dividir en oraciones
-    oraciones = re.split(r'(?<=[\.\!\?])\s+', texto)
+    OVERLAP = 120
 
     partes = []
-    actual = ""
 
-    for o in oraciones:
-
-        if len(actual) + len(o) < max_chars:
-            actual += " " + o
-        else:
-            partes.append(actual.strip())
-            actual = o
-
-    if actual:
-        partes.append(actual.strip())
-
-    # 🔥 unir "Resolucion N." con número siguiente
-    for i in range(len(partes) - 1):
-        if re.search(r'Resolucion\s+N\.?$', partes[i], re.I):
-            partes[i] = partes[i] + " " + partes[i + 1]
-            partes[i + 1] = ""
-            
-    partes = [p for p in partes if p.strip()]
+    for i in range(0, len(texto), max_chars - OVERLAP):
+        partes.append(texto[i:i + max_chars].strip())
 
     return partes
 
@@ -180,35 +154,6 @@ def chunkear(texto: str) -> list[str]:
     )[0]
 
     texto = limpiar_ocr(texto)
-
-    # ------------------------------------------------
-    # 🔥 DETECCIÓN DIRECTA DE RESOLUCIONES (CRÍTICO)
-    # ------------------------------------------------
-
-    if re.search(r'resoluci[oó]n.*n\s*\d+', texto, re.I):
-
-        bloques = re.split(
-            r'(RESOLUCI[ÓO]N[\s\S]{0,40}?N[°º]?\s*\d+)',
-            texto,
-            flags=re.I
-        )
-
-        chunks = []
-
-        for i in range(1, len(bloques), 2):
-            titulo = bloques[i]
-            contenido = bloques[i+1] if i+1 < len(bloques) else ""
-
-            bloque = (titulo + " " + contenido).strip()
-
-            if len(bloque) < 100:
-                continue
-
-            partes = subdividir_bloque(bloque)
-            chunks.extend(partes)
-
-        if chunks:
-            return merge_chunks(chunks)
 
     # ------------------------------------------------
     # CHUNKING PARA ESTRUCTURA DE RESOLUCIONES
@@ -284,18 +229,7 @@ def chunkear(texto: str) -> list[str]:
 
     for i in range(0, len(texto), step):
 
-        chunk = texto[i:i + CHUNK_SIZE]
-
-        # 🔥 evitar cortar "RESOLUCION"
-        if "RESOLUCION" in chunk[-50:]:
-            chunk = chunk + texto[i + CHUNK_SIZE:i + CHUNK_SIZE + 200]
-
-        # 🔥 intentar no cortar en medio de oración
-        end = chunk.rfind('.')
-        if end > 100:
-            chunk = chunk[:end+1]
-
-        chunk = chunk.strip()
+        chunk = texto[i:i + CHUNK_SIZE].strip()
 
         if len(chunk) < 350:
             continue
