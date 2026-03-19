@@ -2,6 +2,7 @@
 from backend.services.retrieval_service import obtener_contexto
 from backend.services.retrieval_text_utils import normalizar
 from backend.services.frase_ranker import rankear_frases
+from backend.services.retrieval_text_utils import safe_split
 
 
 def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
@@ -56,13 +57,26 @@ def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
     # 🔥 SIEMPRE USAR FRASES (CLAVE RAG)
     # =====================================================
 
-    tokens = normalizar(pregunta).split()
+    tokens = safe_split(normalizar(pregunta))
 
     frases_top = []
 
     for t in textos:
-        ranked = rankear_frases(t, tokens, top_k=3)
+
+        # 🔥 FIX CRÍTICO
+        if isinstance(t, dict):
+            t = t.get("contenido") or t.get("texto") or ""
+
+        if not isinstance(t, str):
+            continue
+
+        t = re.sub(r'(?<=\d)l(?=\d)', '1', t)
+
+        ranked = rankear_frases(t, tokens, pregunta=pregunta, top_k=3)
         frases_top.extend(ranked)
+
+    # 🔥 eliminar duplicados
+    frases_top = list(dict.fromkeys(frases_top))
 
     if frases_top:
         textos = frases_top[:5]
@@ -73,15 +87,22 @@ def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
 
     if modo_cita:
 
-        tokens = normalizar(pregunta).split()
-
         frases_top = []
 
         for t in textos:
 
-            ranked = rankear_frases(t, tokens, top_k=5)
+            # 🔥 FIX CRÍTICO
+            if isinstance(t, dict):
+                t = t.get("contenido") or t.get("texto") or ""
 
+            if not isinstance(t, str):
+                continue
+
+            ranked = rankear_frases(t, tokens, pregunta=pregunta, top_k=5)
             frases_top.extend(ranked)
+
+        # 🔥 eliminar duplicados
+        frases_top = list(dict.fromkeys(frases_top))
 
         if frases_top:
             textos = frases_top[:5]
