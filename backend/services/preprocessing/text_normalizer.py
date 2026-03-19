@@ -1,8 +1,8 @@
-# services/preprocessing/text_normalizer.py
+# backend/services/preprocessing/text_normalizer.py
 
 import re
 import unicodedata
-from backend.services.censurador_service import censurar_texto
+from backend.ervices.censurador_service import censurar_texto
 
 
 def normalizar_espaciado_legal(texto: str) -> str:
@@ -32,7 +32,7 @@ def reconstruir_parrafos(texto: str) -> str:
         if not l:
             continue
 
-        if len(l) < 80:
+        if len(l) < 80 and not l.isupper():
             buffer += " " + l
         else:
             if buffer:
@@ -48,15 +48,33 @@ def reconstruir_parrafos(texto: str) -> str:
 
 
 def normalizar_texto_completo(texto: str) -> str:
+
     texto = censurar_texto(texto or "")
+
     texto = unicodedata.normalize("NFKC", texto)
+
     texto = texto.replace("\u00A0", " ")
     texto = texto.replace("\r", "\n")
 
     texto = normalizar_espaciado_legal(texto)
+
     texto = reparar_texto_pdf(texto)
+
     texto = reconstruir_parrafos(texto)
+
     texto = normalizar_espaciado_legal(texto)
 
+    # eliminar encabezados institucionales comunes
+    texto = re.sub(
+        r'(Gobierno de Chile|Ministerio de Economía).*?\n',
+        '',
+        texto,
+        flags=re.I
+    )
+
+    # eliminar números de página sueltos
+    texto = re.sub(r'^\d{1,3}$', '', texto, flags=re.MULTILINE)
+
     texto = re.sub(r"\s{2,}", " ", texto).strip()
+
     return texto
