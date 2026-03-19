@@ -1,6 +1,7 @@
 # services/indexing/index_service.py
 
-from database import clean_collection, index_collection
+from database.mongo import clean_collection, index_collection
+
 from backend.services.indexing.text_cleaning import normalize_text
 from backend.services.indexing.document_classifier import detectar_tipo_documento
 from backend.services.indexing.section_classifier import clasificar_seccion
@@ -8,35 +9,29 @@ from backend.services.indexing.hashing_utils import sha256_text
 from backend.services.indexing.embedding_pipeline import generar_embedding
 from backend.services.indexing.mongo_upsert import upsert_chunk
 from backend.services.indexing.config import MIN_CHUNK_LENGTH
-from backend.services.retrieval_text_utils import normalizar
-from backend.services.chunking_juridico import (
-    reconstruir_secciones,
-    extraer_nombre_seccion
-)
-from backend.services.preprocessing.chunking_service import chunkear
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from backend.services.retrieval_text_utils import normalizar
+from backend.services.chunking_juridico import extraer_nombre_seccion, detectar_tipo_chunk
+from backend.services.indexing.legal_reconstructor import reconstruir_documento
+import re
 
 
 def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
-    # ----------------------------------------
-    # Normalizar filtro de documento
-    # ----------------------------------------
-
     doc_norm = normalizar(doc) if doc else None
 
     if mode == "rebuild":
+        print("🧹 Borrando índice anterior...")
         index_collection.delete_many({})
 
     inserted = 0
     updated = 0
+    skipped = 0
+    embedding_errors = 0
 
-    buffer_docs: dict[str, list[str]] = {}
-
-    # ----------------------------------------
-    # Query Mongo
-    # ----------------------------------------
+    # -----------------------------
+    # QUERY
+    # -----------------------------
 
     query = (
         {
@@ -49,15 +44,22 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         else {}
     )
 
-    cursor = clean_collection.find(query)
+    total_docs = clean_collection.count_documents(query)
+    print(f"📄 Documentos encontrados: {total_docs}")
 
-    # ----------------------------------------
-    # ACUMULAR TEXTO POR DOCUMENTO
-    # ----------------------------------------
+    cursor = list(clean_collection.find(query))
 
-    for row in cursor:
+    hashes = set()
 
-        contenido_raw = (
+    # -----------------------------
+    # LOOP PRINCIPAL
+    # -----------------------------
+
+    for i, row in enumerate(cursor, start=1):
+
+        metadata_row = row.get("metadata", {})
+
+        texto_raw = (
             row.get("fragmento")
             or row.get("contenido")
             or row.get("texto")
@@ -65,95 +67,149 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
             or row.get("chunk")
         )
 
-        if not isinstance(contenido_raw, str):
-            continue
-
-        contenido = normalize_text(contenido_raw)
-
-        if len(contenido) < MIN_CHUNK_LENGTH:
-            continue
-
         documento = (
             row.get("documento")
-            or row.get("metadata", {}).get("documento")
             or row.get("nombre")
+            or metadata_row.get("documento")
         )
 
-        if not documento:
+        if not texto_raw or not documento:
+            skipped += 1
             continue
 
-        documento = str(documento)
+        documento_norm = normalizar(str(documento))
 
-        buffer_docs.setdefault(documento, []).append(contenido)
+        if i % 200 == 0:
+            print(f"Procesados: {i}")
 
-    # ----------------------------------------
-    # PROCESAR DOCUMENTOS
-    # ----------------------------------------
+        if not isinstance(texto_raw, str):
+            skipped += 1
+            continue
 
-    for documento, fragmentos in buffer_docs.items():
+        texto_chunk = normalize_text(texto_raw)
 
-        documento_norm = normalizar(documento)
+        contenido_norm = normalizar(texto_chunk)
 
-        chunks = fragmentos
+        if len(texto_chunk) < MIN_CHUNK_LENGTH:
+            skipped += 1
+            continue
 
-        # ----------------------------------------
-        # DEDUPLICACIÓN DE CHUNKS SIMILARES
-        # ----------------------------------------
+        if not documento_norm:
+            skipped += 1
+            continue
 
-        chunks_filtrados = []
-        hashes = set()
+        # -------------------------
+        # HASH
+        # -------------------------
 
-        for ch in chunks:
+        content_hash = sha256_text(texto_chunk)
 
-            txt = ch.strip()
+        if content_hash in hashes:
+            skipped += 1
+            continue
 
-            if len(txt) < 40:
-                continue
+        hashes.add(content_hash)
 
-            # hash semántico corto
-            h = sha256_text(txt[:500])
+        # -------------------------
+        # SECCIÓN (clave para RAG)
+        # -------------------------
 
-            if h in hashes:
-                continue
+        seccion = (
+            extraer_nombre_seccion(texto_chunk)
+            or clasificar_seccion(texto_chunk)
+        )
 
-            hashes.add(h)
-            chunks_filtrados.append(txt)
+        # -------------------------
+        # TIPO CHUNK (🔥 CRÍTICO)
+        # -------------------------
 
-        chunks = chunks_filtrados
+        tipo_chunk = detectar_tipo_chunk(texto_chunk, seccion)
 
-        total_chunks = len(chunks)
+        # -------------------------
+        # TIPO DOCUMENTO
+        # -------------------------
 
-        for i, texto_chunk in enumerate(chunks):
+        tipo_doc = detectar_tipo_documento(documento_norm, texto_chunk)
 
-            if not texto_chunk or len(texto_chunk) < 30:
-                continue
+        # -------------------------
+        # ARTÍCULO (🔥 CLAVE)
+        # -------------------------
 
-            if len(texto_chunk) > 2000:
-                texto_chunk = texto_chunk[:2000]
+        articulo = None
 
-            tipo_doc = detectar_tipo_documento(documento, texto_chunk)
+        MAPA_ARTICULOS = {
+            "primero": 1,
+            "segundo": 2,
+            "tercero": 3,
+            "cuarto": 4,
+            "quinto": 5,
+            "sexto": 6,
+            "septimo": 7,
+            "séptimo": 7,
+            "octavo": 8,
+            "noveno": 9,
+            "decimo": 10,
+            "décimo": 10
+        }
 
-            seccion = (
-                extraer_nombre_seccion(texto_chunk)
-                or clasificar_seccion(texto_chunk)
-            )
+        articulo = None
 
-            metadata = {
-                "documento": documento_norm,
-                "documento_norm": documento_norm,
-                "tipo_documento": tipo_doc,
-                "seccion": seccion,
-                "chunk_index": i,
-                "total_chunks": total_chunks,
-                "longitud": len(texto_chunk.split())
-            }
+        m_num = re.search(r'art[ií]culo\s+(\d+)', texto_chunk.lower())
+        m_txt = re.search(r'art[ií]culo\s+(primero|segundo|tercero|cuarto|quinto|sexto|septimo|séptimo|octavo|noveno|decimo|décimo)', texto_chunk.lower())
+
+        if m_num:
+            articulo = int(m_num.group(1))
+
+        elif m_txt:
+            articulo = MAPA_ARTICULOS.get(m_txt.group(1))
+
+        # -------------------------
+        # METADATA
+        # -------------------------
+
+        metadata = {
+            "documento": documento_norm,
+            "documento_norm": documento_norm,
+            "tipo_documento": tipo_doc,
+            "tipo_chunk": tipo_chunk,   # 🔥 NUEVO
+            "articulo": articulo,
+            "seccion": seccion,
+            "chunk_index": i,
+            "total_chunks": total_docs,
+            "longitud": len(texto_chunk.split()),
+            "char_length": len(texto_chunk),
+            "hash": content_hash,
+            "es_articulo": tipo_chunk == "articulo_resolucion",
+            "es_resolutivo": tipo_chunk in ["articulo_resolucion", "resolucion"],
+        }
+
+        # -------------------------
+        # EMBEDDING
+        # -------------------------
+
+        try:
 
             embedding = generar_embedding(texto_chunk, tipo_doc)
 
-            content_hash = sha256_text(texto_chunk)
+            if not embedding:
+                embedding_errors += 1
+                continue
 
-            # hash más estable
-            chunk_id = sha256_text(f"{documento_norm}_{i}_{total_chunks}")
+        except Exception as e:
+
+            print("❌ Error embedding:", e)
+            embedding_errors += 1
+            continue
+
+        # -------------------------
+        # UPSERT
+        # -------------------------
+
+        chunk_id = sha256_text(
+            f"{documento_norm}_{i}_{content_hash}"
+        )
+
+        try:
 
             res = upsert_chunk(
                 chunk_id,
@@ -161,16 +217,35 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
                 metadata,
                 embedding,
                 content_hash,
+                contenido_norm=contenido_norm   # 🔥 NUEVO
             )
 
             if res.upserted_id:
                 inserted += 1
+
             elif res.modified_count > 0:
                 updated += 1
+
+        except Exception as e:
+
+            print("❌ Error Mongo:", e)
+            skipped += 1
+
+    # -----------------------------
+    # RESULTADO FINAL
+    # -----------------------------
+
+    print("\n📊 RESULTADO INDEXACIÓN")
+    print("Insertados:", inserted)
+    print("Actualizados:", updated)
+    print("Saltados:", skipped)
+    print("Errores embedding:", embedding_errors)
 
     return {
         "mode": mode,
         "documento_filtrado": doc_norm,
         "inserted": inserted,
         "updated": updated,
+        "skipped": skipped,
+        "embedding_errors": embedding_errors
     }
