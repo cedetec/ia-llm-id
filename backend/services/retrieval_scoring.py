@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import List, Tuple
+from backend.services.retrieval_text_utils import safe_split
 
 # =========================================================
 # NORMALIZACIÓN
@@ -181,7 +182,17 @@ def score_chunk(
     if not contenido:
         return 0.0
 
-    contenido = str(contenido)
+    if isinstance(contenido, dict):
+        contenido = contenido.get("contenido") or contenido.get("texto") or ""
+
+    elif isinstance(contenido, list):
+        contenido = " ".join(
+            c.get("contenido", "") if isinstance(c, dict) else str(c)
+            for c in contenido
+        )
+
+    if not isinstance(contenido, str):
+        return 0.0
 
     try:
 
@@ -202,7 +213,7 @@ def score_chunk(
         penalty = 0
 
         # evitar chunks demasiado pequeños
-        if len(c_low.split()) < 5:
+        if not isinstance(c_low, str) or len(safe_split(c_low)) < 5:
             return 0.0
 
         pres, occ = score_tokens(c_low, tokens)
@@ -285,7 +296,7 @@ def score_chunk(
                 penalty -= 6
 
             # preferir frases cortas en citas
-            words = len(c_low.split())
+            words = len(safe_split(c_low))
 
             if words < 8:
                 penalty -= 4
@@ -301,11 +312,11 @@ def score_chunk(
         # SCORE FINAL
         # =====================================================
 
-        if modo_cita and len(c_low.split()) > 200:
+        if modo_cita and len(safe_split(c_low)) > 200:
             penalty -= 10
 
 
-        length_norm = max(len(c_low.split()), 1)
+        length_norm = max(len(safe_split(c_low)), 1)
         density = occ / length_norm
 
         total = (
