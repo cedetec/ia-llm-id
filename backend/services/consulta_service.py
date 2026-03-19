@@ -5,7 +5,7 @@ from backend.services.intent_service import (
     detectar_intent,
 )
 
-from backend.services.consulta_utils_text import modo_cita, extraer_docfile
+from backend.services.consulta_utils_text import modo_cita, extraer_docfile, normalizar_contexto
 from backend.services.consulta.calendar_handler import manejar_calendario
 from backend.services.consulta.rag_handler import recuperar_contexto
 
@@ -41,8 +41,6 @@ def procesar_consulta(pregunta: str) -> dict:
     # -------------------------------------------------
     # ROUTER PREGUNTAS ESTRUCTURADAS
     # -------------------------------------------------
-
-    pregunta_low = pregunta_norm.lower()
     
     if any(x in pregunta_low for x in [
         "numero de resolucion",
@@ -60,7 +58,9 @@ def procesar_consulta(pregunta: str) -> dict:
         )
 
         if contexto:
+            contexto = normalizar_contexto(contexto)
 
+            # 🔍 EXTRACCIÓN
             numero = extraer_numero_resolucion_estructurado(
                 pregunta_low,
                 contexto
@@ -140,6 +140,9 @@ def procesar_consulta(pregunta: str) -> dict:
         }
 
     pregunta_low = pregunta_norm.lower()
+
+    # 🔥 FIX CONTEXTO
+    contexto = normalizar_contexto(contexto)
 
     # 3️⃣ Extracción estructurada
     numero = extraer_numero_resolucion_estructurado(pregunta_low, contexto)
