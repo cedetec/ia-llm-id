@@ -124,7 +124,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         # 🔥 BOOST POR LONGITUD
         # ----------------------------------
 
-        length = len(cont.split())
+        length = len(cont.split()) if isinstance(cont, str) else 0
 
         if 80 <= length <= 250:
             d["pre_score"] += 3
