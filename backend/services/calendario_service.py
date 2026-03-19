@@ -1,5 +1,5 @@
 # backend/services/calendario_service.py
-from database import documents_collection
+from database.mongo import documents_collection
 from datetime import datetime
 import re
 from rapidfuzz import fuzz
