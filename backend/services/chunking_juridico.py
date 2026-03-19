@@ -514,10 +514,6 @@ def dividir_resuelvo_en_articulos(texto: str) -> list[str]:
 
 def detectar_tipo_chunk(texto: str, seccion: str = "") -> str:
 
-    # 🔥 PRIORIDAD MÁXIMA → DETECCIÓN DE RESOLUCIÓN
-    if re.search(r'apruebase|aprueba|resuelv|resolucion', texto, re.I):
-        return "resolucion"
-
     if not texto:
         return "otro"
 
