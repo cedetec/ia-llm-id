@@ -2,6 +2,7 @@
 import re
 import unicodedata
 import numpy as np
+from backend.services.retrieval_text_utils import safe_split
 
 def cosine(v1, v2):
     try:
@@ -35,8 +36,8 @@ def normalizar_txt(txt):
 
 def similitud_textual(a, b):
 
-    sa = set(a.split())
-    sb = set(b.split())
+    sa = set(safe_split(a))
+    sb = set(safe_split(b))
 
     inter = sa & sb
     union = sa | sb
