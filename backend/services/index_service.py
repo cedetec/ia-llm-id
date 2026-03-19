@@ -4,17 +4,48 @@ from database.mongo import clean_collection, index_collection
 
 from backend.services.indexing.text_cleaning import normalize_text
 from backend.services.indexing.document_classifier import detectar_tipo_documento
-from backend.services.indexing.section_classifier import clasificar_seccion
 from backend.services.indexing.hashing_utils import sha256_text
 from backend.services.indexing.embedding_pipeline import generar_embedding
 from backend.services.indexing.mongo_upsert import upsert_chunk
 from backend.services.indexing.config import MIN_CHUNK_LENGTH
 
 from backend.services.retrieval_text_utils import normalizar
-from backend.services.chunking_juridico import extraer_nombre_seccion, detectar_tipo_chunk
-from backend.services.indexing.legal_reconstructor import reconstruir_documento
+from backend.services.chunking_juridico import detectar_tipo_chunk
+
 import re
 
+
+# ==========================================
+# 🔥 DETECTOR DE ARTÍCULO
+# ==========================================
+
+MAPA_ARTICULOS = {
+    "primero": 1, "segundo": 2, "tercero": 3, "cuarto": 4,
+    "quinto": 5, "sexto": 6, "septimo": 7, "séptimo": 7,
+    "octavo": 8, "noveno": 9, "decimo": 10, "décimo": 10
+}
+
+def detectar_articulo(texto: str):
+
+    t = texto.lower()
+
+    m_num = re.search(r'art[ií]culo\s+(\d+)', t)
+    if m_num:
+        return int(m_num.group(1))
+
+    m_txt = re.search(
+        r'art[ií]culo\s+(primero|segundo|tercero|cuarto|quinto|sexto|septimo|séptimo|octavo|noveno|decimo|décimo)',
+        t
+    )
+    if m_txt:
+        return MAPA_ARTICULOS.get(m_txt.group(1))
+
+    return None
+
+
+# ==========================================
+# 🔥 FUNCIÓN PRINCIPAL
+# ==========================================
 
 def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
@@ -29,9 +60,9 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
     skipped = 0
     embedding_errors = 0
 
-    # -----------------------------
+    # --------------------------------------
     # QUERY
-    # -----------------------------
+    # --------------------------------------
 
     query = (
         {
@@ -51,9 +82,9 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
     hashes = set()
 
-    # -----------------------------
+    # --------------------------------------
     # LOOP PRINCIPAL
-    # -----------------------------
+    # --------------------------------------
 
     for i, row in enumerate(cursor, start=1):
 
@@ -73,30 +104,35 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
             or metadata_row.get("documento")
         )
 
+        # -------------------------
+        # VALIDACIONES
+        # -------------------------
+
         if not texto_raw or not documento:
             skipped += 1
             continue
-
-        documento_norm = normalizar(str(documento))
-
-        if i % 200 == 0:
-            print(f"Procesados: {i}")
 
         if not isinstance(texto_raw, str):
             skipped += 1
             continue
 
-        texto_chunk = normalize_text(texto_raw)
-
-        contenido_norm = normalizar(texto_chunk)
-
-        if len(texto_chunk) < MIN_CHUNK_LENGTH:
-            skipped += 1
-            continue
+        documento_norm = normalizar(str(documento))
 
         if not documento_norm:
             skipped += 1
             continue
+
+        # -------------------------
+        # LIMPIEZA
+        # -------------------------
+
+        texto_chunk = normalize_text(texto_raw)
+
+        if len(texto_chunk.split()) < 15:
+            skipped += 1
+            continue
+
+        contenido_norm = normalizar(texto_chunk)
 
         # -------------------------
         # HASH
@@ -111,19 +147,32 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         hashes.add(content_hash)
 
         # -------------------------
-        # SECCIÓN (clave para RAG)
+        # TIPO CHUNK (🔥 CLAVE)
         # -------------------------
 
-        seccion = (
-            extraer_nombre_seccion(texto_chunk)
-            or clasificar_seccion(texto_chunk)
-        )
+        tipo_chunk = detectar_tipo_chunk(texto_chunk)
 
         # -------------------------
-        # TIPO CHUNK (🔥 CRÍTICO)
+        # SECCIÓN (derivada simple)
         # -------------------------
 
-        tipo_chunk = detectar_tipo_chunk(texto_chunk, seccion)
+        if tipo_chunk in ["resolucion"]:
+            seccion = "resolucion"
+
+        elif tipo_chunk == "considerando":
+            seccion = "considerando"
+
+        elif tipo_chunk == "objetivo":
+            seccion = "objetivo"
+
+        elif tipo_chunk == "postulacion":
+            seccion = "postulacion"
+
+        elif tipo_chunk == "requisito":
+            seccion = "requisito"
+
+        else:
+            seccion = "general"
 
         # -------------------------
         # TIPO DOCUMENTO
@@ -132,55 +181,27 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         tipo_doc = detectar_tipo_documento(documento_norm, texto_chunk)
 
         # -------------------------
-        # ARTÍCULO (🔥 CLAVE)
+        # ARTÍCULO
         # -------------------------
 
-        articulo = None
-
-        MAPA_ARTICULOS = {
-            "primero": 1,
-            "segundo": 2,
-            "tercero": 3,
-            "cuarto": 4,
-            "quinto": 5,
-            "sexto": 6,
-            "septimo": 7,
-            "séptimo": 7,
-            "octavo": 8,
-            "noveno": 9,
-            "decimo": 10,
-            "décimo": 10
-        }
-
-        articulo = None
-
-        m_num = re.search(r'art[ií]culo\s+(\d+)', texto_chunk.lower())
-        m_txt = re.search(r'art[ií]culo\s+(primero|segundo|tercero|cuarto|quinto|sexto|septimo|séptimo|octavo|noveno|decimo|décimo)', texto_chunk.lower())
-
-        if m_num:
-            articulo = int(m_num.group(1))
-
-        elif m_txt:
-            articulo = MAPA_ARTICULOS.get(m_txt.group(1))
+        articulo = detectar_articulo(texto_chunk)
 
         # -------------------------
-        # METADATA
+        # METADATA FINAL
         # -------------------------
 
         metadata = {
             "documento": documento_norm,
             "documento_norm": documento_norm,
             "tipo_documento": tipo_doc,
-            "tipo_chunk": tipo_chunk,   # 🔥 NUEVO
-            "articulo": articulo,
+            "tipo_chunk": tipo_chunk,
             "seccion": seccion,
+            "articulo": articulo,
             "chunk_index": i,
-            "total_chunks": total_docs,
             "longitud": len(texto_chunk.split()),
             "char_length": len(texto_chunk),
             "hash": content_hash,
-            "es_articulo": tipo_chunk == "articulo_resolucion",
-            "es_resolutivo": tipo_chunk in ["articulo_resolucion", "resolucion"],
+            "es_resolutivo": tipo_chunk == "resolucion",
         }
 
         # -------------------------
@@ -188,7 +209,6 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         # -------------------------
 
         try:
-
             embedding = generar_embedding(texto_chunk, tipo_doc)
 
             if not embedding:
@@ -196,7 +216,6 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
                 continue
 
         except Exception as e:
-
             print("❌ Error embedding:", e)
             embedding_errors += 1
             continue
@@ -205,9 +224,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         # UPSERT
         # -------------------------
 
-        chunk_id = sha256_text(
-            f"{documento_norm}_{i}_{content_hash}"
-        )
+        chunk_id = sha256_text(f"{documento_norm}_{i}_{content_hash}")
 
         try:
 
@@ -217,23 +234,21 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
                 metadata,
                 embedding,
                 content_hash,
-                contenido_norm=contenido_norm   # 🔥 NUEVO
+                contenido_norm=contenido_norm
             )
 
             if res.upserted_id:
                 inserted += 1
-
             elif res.modified_count > 0:
                 updated += 1
 
         except Exception as e:
-
             print("❌ Error Mongo:", e)
             skipped += 1
 
-    # -----------------------------
+    # --------------------------------------
     # RESULTADO FINAL
-    # -----------------------------
+    # --------------------------------------
 
     print("\n📊 RESULTADO INDEXACIÓN")
     print("Insertados:", inserted)
