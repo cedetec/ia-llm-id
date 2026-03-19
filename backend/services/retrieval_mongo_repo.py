@@ -1,7 +1,7 @@
 #retrieval_mongo_repo.py
 from __future__ import annotations
 from typing import Dict, List, Any
-from database import index_collection
+from database.mongo import index_collection
 
 
 def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
@@ -10,7 +10,7 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
     # Validación de scan
     # ----------------------------------------
 
-    DEFAULT_SCAN = 120
+    DEFAULT_SCAN = 800
     MAX_SCAN = 6000
 
     if not isinstance(scan, int) or scan <= 0:
@@ -51,7 +51,6 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
                 "embedding": 1
             }
         )
-        .sort([("metadata.documento",1),("metadata.chunk_index",1)])
         .limit(scan)
     )
 
@@ -68,5 +67,10 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
 
         if "contenido" not in d:
             d["contenido"] = ""
+
+    print("DOCS TRAIDOS:", len(docs))
+    print("PRIMEROS DOCS:", [
+        d["metadata"].get("seccion") for d in docs[:10]
+    ])
 
     return docs
