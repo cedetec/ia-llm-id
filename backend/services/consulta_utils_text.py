@@ -154,6 +154,16 @@ def post_corte_frase(s: str, *, max_chars: int = 260) -> str:
     s = re.sub(r"^trav[eé]s\b", "A través", s, flags=re.IGNORECASE)
     s = re.sub(r"^\|\s*", "", s)  # elimina barra inicial
 
+    # eliminar encabezados típicos
+    s = re.sub(r"^(seccion|capitulo|titulo)\s+[ivx0-9]+[:\-]?\s*", "", s, flags=re.I)
+    
+    # evitar basura pero NO eliminar frases útiles
+    if es_ruido(s):
+        return ""
+
+    # validar al final, pero más flexible
+    if len(s) < 40:
+        return ""
 
     if s and s[0].isalpha():
         s = s[0].upper() + s[1:]
@@ -161,36 +171,137 @@ def post_corte_frase(s: str, *, max_chars: int = 260) -> str:
 
     return s
 
+def es_ruido(frase: str) -> bool:
+
+    f = frase.lower()
+
+    if "scopus" in f or "impact factor" in f:
+        return True
+
+    if "http" in f:
+        return True
+
+    # tablas / rankings
+    if "|" in f or "[" in f:
+        return True
+
+    # demasiado numérico
+    if len(re.findall(r"\d", f)) > len(f) * 0.3:
+        return True
+
+    # texto repetitivo típico OCR
+    if len(set(f.split())) < 5:
+        return True
+
+    return False
+
 # ==========================================================
 # VALIDACIONES DE EXCELENCIA RAG (TESIS)
 # ==========================================================
 
 def frase_completa(f: str) -> bool:
+
     f = (f or "").strip()
+
     if not f:
         return False
 
-    return (
-        len(f) > 40 and
-        f.endswith((".", ";", ":"))
-    )
+    # debe tener verbo mínimo (jurídico)
+    if not re.search(
+        r"\b(es|son|será|tiene|podrá|debe|aprueba|resuelve|establece|corresponde)\b",
+        f.lower()
+    ):
+        return False
+
+    # longitud mínima suficiente
+    if len(f) < 40:
+        return False
+
+    return True
 
 
 def score_semantico(frase: str, pregunta: str) -> float:
+
     STOP = {"el", "la", "los", "las", "de", "del", "para", "en", "por", "y", "o"}
 
+    frase_norm = normalizar_txt(frase).lower()
+    pregunta_norm = normalizar_txt(pregunta).lower()
+
     tokens_f = {
-        t for t in re.findall(r"[a-záéíóúñ0-9]+", normalizar_txt(frase).lower())
+        t for t in re.findall(r"[a-záéíóúñ0-9]+", frase_norm)
         if t not in STOP
     }
 
     tokens_p = {
-        t for t in re.findall(r"[a-záéíóúñ0-9]+", normalizar_txt(pregunta).lower())
+        t for t in re.findall(r"[a-záéíóúñ0-9]+", pregunta_norm)
         if t not in STOP
     }
+
     if not tokens_p:
         return 0.0
-    return len(tokens_f & tokens_p) / len(tokens_p)
+
+    inter = tokens_f & tokens_p
+
+    # -------------------------------------------------
+    # SCORE BASE (cobertura)
+    # -------------------------------------------------
+
+    base = len(inter) / len(tokens_p)
+
+    # -------------------------------------------------
+    # BONUS POR PALABRAS CLAVE IMPORTANTES
+    # -------------------------------------------------
+
+    bonus = 0
+
+    keywords_importantes = {
+        "objetivo": 0.25,
+        "resolucion": 0.2,
+        "bases": 0.15,
+        "requisitos": 0.15,
+        "postular": 0.15,
+        "financiamiento": 0.1
+    }
+
+    for k, peso in keywords_importantes.items():
+        if k in tokens_f and k in tokens_p:
+            bonus += peso
+
+    # -------------------------------------------------
+    # BONUS POR COINCIDENCIA FUERTE
+    # -------------------------------------------------
+
+    if len(inter) >= 3:
+        bonus += 0.1
+
+    if len(inter) >= 5:
+        bonus += 0.15
+
+    # -------------------------------------------------
+    # PENALIZACIONES
+    # -------------------------------------------------
+
+    penalty = 0
+
+    # frases demasiado cortas
+    if len(tokens_f) < 4:
+        penalty += 0.2
+
+    # frases demasiado largas (ruido típico OCR)
+    if len(tokens_f) > 80:
+        penalty += 0.15
+
+    # exceso de números (tablas / basura)
+    if len(re.findall(r"\d", frase_norm)) > len(frase_norm) * 0.3:
+        penalty += 0.2
+
+    # -------------------------------------------------
+    # SCORE FINAL
+    # -------------------------------------------------
+
+    score = base + bonus - penalty
+
+    return max(0.0, min(score, 1.0))
 
 
 def nivel_confianza(score: float) -> str:
