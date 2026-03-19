@@ -6,9 +6,19 @@ from backend.services.consulta_extract_frases import (
 )
 
 from backend.services.consulta_utils_text import score_semantico
+from backend.services.retrieval_text_utils import safe_split
 
 import re
 
+def normalizar_texto(s):
+    return (
+        s.lower()
+        .replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
 
 def manejar_cita(pregunta_low, contexto, pregunta):
 
@@ -16,7 +26,23 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     # VALIDACIÓN INICIAL (FIX BUG dict.split)
     # -------------------------------------------------
 
-    if isinstance(contexto, dict):
+    # 🔥 NORMALIZACIÓN GLOBAL (FIX REAL)
+
+    print(">>> ENTRANDO A MANEJAR_CITA")
+    print(">>> CONTEXTO LENGTH:", len(contexto) if isinstance(contexto, str) else type(contexto))
+
+    if isinstance(contexto, list):
+        partes = []
+        for d in contexto:
+            if isinstance(d, dict):
+                val = d.get("contenido") or d.get("texto")
+                if isinstance(val, str):
+                    partes.append(val)
+            elif isinstance(d, str):
+                partes.append(d)
+        contexto = " ".join(partes)
+
+    elif isinstance(contexto, dict):
         contexto = (
             contexto.get("contenido")
             or contexto.get("texto")
@@ -60,14 +86,19 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     # PATRONES SEGÚN INTENCIÓN
     # -------------------------------------------------
 
-    if "resol" in pregunta_low:
+    if "resol" in normalizar_texto(pregunta_low):
         patrones += [
             "resolucion",
+            "resolución",
             "resolucion exenta",
+            "resolución exenta",
             "resuelvo",
             "resuelve",
             "rex",
             "res n",
+            "res.",
+            "resol.",
+            "resolución exenta",
         ]
 
     if "aprueb" in pregunta_low or "bases" in pregunta_low:
@@ -96,6 +127,9 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             "requisitos de postulacion",
             "pueden postular",
             "podran postular",
+            "investigador responsable",
+            "beneficiario",
+            "persona natural",
         ]
 
     patrones_norm = [p.lower() for p in patrones]
@@ -128,18 +162,17 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
             sub = sub.strip()
 
-            if len(sub) < 60:
-                continue
+            sub_norm = normalizar_texto(sub)
 
-            for pat in patrones:
+            if any(normalizar_texto(p) in sub_norm for p in patrones):
 
-                if pat in sub.lower():
+                if len(sub) < 40:   # 🔥 mucho más flexible
+                    continue
 
-                    frases.append(sub)
-                    break
+                frases.append(sub)
 
             # fallback: si no hay patrón, igual guardar algunas
-            if not patrones and len(sub) > 100:
+            if len(frases) < 3 and len(sub) > 80:
                 frases.append(sub)
 
     frases = list(dict.fromkeys(frases))
@@ -153,7 +186,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     frases = [
         f for f in frases
-        if len(f.split()) > 6 and len(f) > 60
+        if isinstance(f, str) and len(safe_split(f)) > 4 and len(f) > 40
     ]
 
     if not frases:
@@ -173,23 +206,36 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     def score_total(f):
 
+        f_low = normalizar_texto(f) if isinstance(f, str) else ""
+
         s_sem = score_semantico(f, pregunta)
 
         s_pat = sum(
             1 for p in patrones_norm
-            if p in f.lower()
+            if p in f_low
         )
 
         s_legal = 0
 
-        if "resuelvo" in f.lower():
+        if "resuelvo" in f_low:
             s_legal += 0.5
 
-        if "apruebase" in f.lower():
+        if "apruebase" in f_low:
             s_legal += 0.6
 
-        if "objetivo del concurso" in f.lower():
+        if "objetivo del concurso" in f_low:
             s_legal += 0.5
+
+        if "podran postular" in f_low or "pueden postular" in f_low:
+            s_legal += 0.7
+
+        if any(x in f_low for x in [
+            "aprueba bases",
+            "aprueban las bases",
+            "apruebase",
+            "apruebanse"
+        ]):
+            s_legal += 5.0  # 🔥 dominante
 
         s_len = min(len(f) / 400, 1)
 
@@ -210,9 +256,11 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     score_sem = score_semantico(mejor, pregunta)
 
+    texto_mejor = mejor.lower() if isinstance(mejor, str) else ""
+
     score_lex = sum(
-        1 for t in pregunta_low.split()
-        if t in mejor.lower()
+        1 for t in safe_split(pregunta_low)
+        if t and t in texto_mejor
     )
 
     # -------------------------------------------------
@@ -223,6 +271,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     respuesta = re.sub(r'\s+', ' ', respuesta)
     respuesta = re.sub(r'([a-z])([A-Z])', r'\1 \2', respuesta)
+    respuesta = re.sub(r'^[a-zA-Z]{1,3}\s+', '', respuesta)
 
     return {
         "respuesta": respuesta.strip(),
