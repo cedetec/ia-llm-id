@@ -1,16 +1,17 @@
 # backend/services/retrieval_service.py
 
-from services.retrieval.doc_utils import extraer_nombre_documento
-from services.retrieval.intent_utils import (
+from backend.services.retrieval.doc_utils import extraer_nombre_documento
+from backend.services.retrieval.intent_utils import (
     detectar_seccion_simple,
     detectar_modo_cita,
 )
-from services.retrieval.filter_builder import construir_filtro_inicial
-from services.retrieval.chunk_filters import filtrar_posicional
-from services.retrieval.ranking_pipeline import rankear_chunks
-from services.retrieval.citation_utils import aplicar_filtro_cita
-from services.retrieval_mongo_repo import find_docs
-from services.retrieval_text_utils import tokens, normalizar
+from backend.services.retrieval.filter_builder import construir_filtro_inicial
+from backend.services.retrieval.chunk_filters import filtrar_posicional
+from backend.services.retrieval.ranking_pipeline import rankear_chunks
+from backend.services.retrieval.citation_utils import aplicar_filtro_cita
+from backend.services.retrieval_mongo_repo import find_docs
+from backend.services.retrieval_text_utils import tokens, normalizar
+from backend.services.consulta_utils_text import extraer_palabra_entre_comillas
 
 import re
 
@@ -96,15 +97,33 @@ def obtener_contexto(
 
     pregunta_low = normalizar(pregunta)
 
-    # 🔥 Filtro inteligente por intención
-    if "aprueb" in pregunta_low:
+    palabra = extraer_palabra_entre_comillas(pregunta)
+
+    # 🔥 1. palabra entre comillas (PRIORIDAD MÁXIMA)
+    if palabra:
+        filtro_base = {
+            "contenido_norm": {"$regex": palabra, "$options": "i"}
+        }
+
+    # 🔥 2. resolución (CLAVE TESIS)
+    elif any(x in pregunta_low for x in ["resolucion", "res.", "rex", "resuelve"]):
+        filtro_base = {
+            "$or": [
+                {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
+                {"contenido_norm": {"$regex": "resolución", "$options": "i"}},
+                {"contenido_norm": {"$regex": "resuelv", "$options": "i"}},
+                {"contenido_norm": {"$regex": "rex", "$options": "i"}},
+                {"contenido_norm": {"$regex": "res\\.", "$options": "i"}},
+            ]
+        }
+
+    # 🔥 3. lo que ya tenías
+    elif "aprueb" in pregunta_low:
         filtro_base = {
             "$or": [
                 {"contenido_norm": {"$regex": "aprueb", "$options": "i"}},
                 {"contenido_norm": {"$regex": "aprueban", "$options": "i"}},
                 {"contenido_norm": {"$regex": "apruebase", "$options": "i"}},
-                {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
-                {"contenido_norm": {"$regex": "resuelve", "$options": "i"}},
             ]
         }
 
@@ -120,12 +139,12 @@ def obtener_contexto(
         filtro_base = {
             "$or": [
                 {"contenido_norm": {"$regex": "requisito", "$options": "i"}},
-                {"contenido_norm": {"$regex": "debe", "$options": "i"}},
+                {"contenido_norm": {"$regex": "postulacion", "$options": "i"}},
+                {"contenido_norm": {"$regex": "deben", "$options": "i"}},
             ]
         }
 
     else:
-        # fallback original
         filtro_base = construir_filtro_inicial(pregunta, None)
 
     if nombre_doc:
@@ -167,7 +186,7 @@ def obtener_contexto(
                     "$options": "i"
                 }
             },
-            scan=scan
+            scan=min(scan, 1000)
         ) or []
 
         print("📦 DOCS fallback:", len(docs))
@@ -185,6 +204,18 @@ def obtener_contexto(
 
         cont = d.get("contenido_norm") or d.get("texto_extraido")
 
+        if isinstance(cont, dict):
+            cont = cont.get("contenido") or cont.get("texto") or ""
+
+        elif isinstance(cont, list):
+            cont = " ".join(
+                x.get("contenido", "") if isinstance(x, dict) else str(x)
+                for x in cont
+            )
+
+        if not isinstance(cont, str):
+            cont = str(cont)
+
         if not cont or len(cont) < 40:
             continue
 
@@ -193,7 +224,9 @@ def obtener_contexto(
         if any(x in cont_norm for x in ["anexo", "tabla", "bibliografia"]):
             continue
 
+        d["contenido_raw"] = cont
         d["contenido_norm"] = cont_norm
+        
         docs_limpios.append(d)
 
     docs = docs_limpios
@@ -206,7 +239,12 @@ def obtener_contexto(
     # --------------------------------------------------
 
     toks = tokens(pregunta) or []
-    toks = [t for t in toks if len(t) > 3]
+    STOPWORDS = {"del", "las", "los", "una", "uno", "para", "como"}
+
+    toks = [
+        t for t in toks
+        if len(t) > 2 and t not in STOPWORDS
+    ]
 
     # --------------------------------------------------
     # 🔥 SCORING
@@ -252,6 +290,11 @@ def obtener_contexto(
         if meta.get("es_resolutivo"):
             score += 12
 
+        # 🔥 boost especial para citas
+        if modo_cita:
+            if any(x in cont for x in ["resolucion", "aprueba", "objetivo"]):
+                score += 8
+
         d["pre_score"] = score
 
     docs = sorted(docs, key=lambda x: x["pre_score"], reverse=True)[:200]
@@ -291,9 +334,9 @@ def obtener_contexto(
             continue
 
         if modo_cita:
-            cont = aplicar_filtro_cita(pregunta, cont, nombre_doc is not None)
-            if not cont:
-                continue
+            cont_filtrado = aplicar_filtro_cita(pregunta, cont, nombre_doc is not None)
+            if cont_filtrado:
+                cont = cont_filtrado
 
         resultados.append(cont.strip())
         seen.add(cont)
