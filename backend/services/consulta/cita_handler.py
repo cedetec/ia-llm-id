@@ -11,6 +11,16 @@ from backend.services.retrieval_text_utils import safe_split
 import re
 
 def normalizar_texto(s):
+    if isinstance(s, dict):
+        s = s.get("contenido") or s.get("texto") or ""
+    elif isinstance(s, list):
+        s = " ".join(
+            x.get("contenido", "") if isinstance(x, dict) else str(x)
+            for x in s
+        )
+    elif not isinstance(s, str):
+        s = str(s or "")
+
     return (
         s.lower()
         .replace("á", "a")
@@ -82,11 +92,16 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     contexto = re.sub(r'\n+', '\n', contexto)
     contexto = re.sub(r'\s{2,}', ' ', contexto)
 
+    # 🔥 FIX OCR números
+    contexto = re.sub(r'(?<=\d)l(?=\d)', '1', contexto)
+
     # -------------------------------------------------
     # PATRONES SEGÚN INTENCIÓN
     # -------------------------------------------------
 
-    if "resol" in normalizar_texto(pregunta_low):
+    pregunta_norm = normalizar_texto(pregunta_low)
+
+    if "resol" in pregunta_norm:
         patrones += [
             "resolucion",
             "resolución",
@@ -98,10 +113,9 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             "res n",
             "res.",
             "resol.",
-            "resolución exenta",
         ]
 
-    if "aprueb" in pregunta_low or "bases" in pregunta_low:
+    if "aprueb" in pregunta_norm or "bases" in pregunta_norm:
         patrones += [
             "apruebase",
             "apruebanse",
@@ -113,7 +127,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             "bases concursales",
         ]
 
-    if "objetivo" in pregunta_low:
+    if "objetivo" in pregunta_norm:
         patrones += [
             "objetivo del concurso",
             "objetivo general",
@@ -121,7 +135,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             "tiene como objetivo",
         ]
 
-    if "postular" in pregunta_low or "requisito" in pregunta_low:
+    if "postular" in pregunta_norm or "requisito" in pregunta_norm:
         patrones += [
             "requisitos",
             "requisitos de postulacion",
@@ -132,7 +146,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             "persona natural",
         ]
 
-    patrones_norm = [p.lower() for p in patrones]
+    patrones_norm = list(set(p.lower() for p in patrones))
 
     # -------------------------------------------------
     # DIVIDIR CONTEXTO (MEJORADO)
@@ -164,21 +178,52 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
             sub_norm = normalizar_texto(sub)
 
-            if any(normalizar_texto(p) in sub_norm for p in patrones):
+            # ❌ bloquear solo basura real, no resoluciones válidas
+            if re.match(r'^(fiscalia|juridico|sgdoc)\b', sub_norm):
+                continue
+
+            match_pat = any(p in sub_norm for p in patrones_norm)
+
+            # fallback semántico SOLO si pregunta es abierta
+            if not match_pat:
+                if "objetivo" in pregunta_norm:
+                    if "objetivo" in sub_norm:
+                        match_pat = True
+
+                elif "requisito" in pregunta_norm:
+                    if any(x in sub_norm for x in ["deben", "requisito", "postular"]):
+                        match_pat = True
+
+            if match_pat:
 
                 if len(sub) < 40:   # 🔥 mucho más flexible
                     continue
 
+                # permitir frases válidas aunque no tengan verbo explícito
+                if not re.search(
+                    r"\b(es|son|será|tiene|podrá|debe|aprueba|resuelve|establece|corresponde)\b",
+                    sub_norm
+                ):
+                    if len(sub_norm) < 100:  # 🔥 solo descarta si además es corta
+                        continue
+
                 frases.append(sub)
 
             # fallback: si no hay patrón, igual guardar algunas
-            if len(frases) < 3 and len(sub) > 80:
+            if not patrones and len(sub) > 80:
                 frases.append(sub)
 
     frases = list(dict.fromkeys(frases))
 
     if not frases:
         return None
+
+    # 🔥 FILTRO ESPECIAL: número de resolución
+    if "numero" in pregunta.lower() or "n°" in pregunta.lower():
+        frases = [
+            f for f in frases
+            if re.search(r'\b\d{2,}[-/]?\d{2,}\b', f)
+        ]
 
     # -------------------------------------------------
     # FILTROS
@@ -191,6 +236,19 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     if not frases:
         return None
+
+    # -----------------------------------------
+    # 🔥 FILTRO ESPECIAL: número de resolución
+    # -----------------------------------------
+
+    if "numero" in pregunta.lower() or "n°" in pregunta.lower():
+        frases = [
+            f for f in frases
+            if re.search(r'\b\d{2,}[-/]?\d{2,}\b', f)
+        ]
+
+        if not frases:
+            return None
 
     # -------------------------------------------------
     # DEBUG
@@ -217,29 +275,63 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
         s_legal = 0
 
-        if "resuelvo" in f_low:
-            s_legal += 0.5
+        pregunta_low = pregunta.lower()
 
-        if "apruebase" in f_low:
-            s_legal += 0.6
+        # ❌ eliminar frases basura
+        if any(x in f_low for x in [
+            "surge la necesidad",
+            "se requiere",
+            "se informa",
+            "con el fin de",
+            "para efectos de"
+        ]):
+            return -999
 
-        if "objetivo del concurso" in f_low:
-            s_legal += 0.5
+        # ❌ eliminar frases sin verbo legal fuerte
+        if not any(x in f_low for x in ["aprueba", "resuelve", "establece", "modifica"]):
+            return -500
 
-        if "podran postular" in f_low or "pueden postular" in f_low:
-            s_legal += 0.7
-
+        # 🔥 aprobación bases (dominante)
         if any(x in f_low for x in [
             "aprueba bases",
             "aprueban las bases",
             "apruebase",
             "apruebanse"
         ]):
-            s_legal += 5.0  # 🔥 dominante
+            s_legal += 3.5
+
+        # 🔥 resolución
+        if any(x in pregunta_low for x in ["resolucion", "res.", "rex", "resuelve"]):
+            if any(x in f_low for x in ["resolucion", "resuelvo", "resuelve"]):
+                s_legal += 4.0
+
+        # 🔥 número resolución
+        if any(x in pregunta_low for x in ["numero", "n°", "nº"]):
+            if re.search(r'\b\d{3,5}[/\-]\d{2,4}\b', f_low):
+                s_legal += 4.0
+
+        # 🔥 objetivo
+        if "objetivo" in pregunta_low:
+            if "objetivo del concurso" in f_low:
+                s_legal += 5.0
+            elif "objetivo" in f_low:
+                s_legal += 2.5
+
+        # 🔥 postulaciones
+        if "podran postular" in f_low or "pueden postular" in f_low:
+            s_legal += 1.0
+
+        # 🔥 contexto FONDECYT
+        if "fondecyt" in pregunta_low and "fondecyt" in f_low:
+            s_legal += 2.0
+
+        # ❌ penalizar frases muy cortas
+        if len(f) < 60:
+            s_legal -= 1.0
 
         s_len = min(len(f) / 400, 1)
 
-        return (s_sem * 0.5) + (s_pat * 0.3) + (s_len * 0.1) + s_legal
+        return (s_sem * 0.4) + (s_pat * 0.4) + (s_len * 0.1) + s_legal
 
     mejor = max(frases, key=score_total)
 
@@ -247,7 +339,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     # FALLBACK (CLAVE PARA TESIS)
     # -------------------------------------------------
 
-    if score_total(mejor) < 0.15:
+    if score_total(mejor) < 0.25:
         mejor = frases[0]
 
     # -------------------------------------------------
@@ -256,11 +348,16 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
     score_sem = score_semantico(mejor, pregunta)
 
-    texto_mejor = mejor.lower() if isinstance(mejor, str) else ""
+    texto_mejor = normalizar_texto(mejor) if isinstance(mejor, str) else ""
+
+    tokens_p = [
+        t for t in safe_split(normalizar_texto(pregunta_low) if isinstance(pregunta_low, str) else "")
+        if len(t) > 2 and t not in {"del", "las", "los", "una", "uno"}
+    ]
 
     score_lex = sum(
-        1 for t in safe_split(pregunta_low)
-        if t and t in texto_mejor
+        1 for t in tokens_p
+        if t in texto_mejor
     )
 
     # -------------------------------------------------
