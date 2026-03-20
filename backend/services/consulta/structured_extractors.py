@@ -8,63 +8,56 @@ from backend.services.consulta.patterns import (
 from backend.utils.extractores import extraer_numero_resolucion
 from backend.utils.extractores_fecha import extraer_fecha_resolucion
 
+def normalizar_contexto(contexto):
+
+    if isinstance(contexto, list):
+        return " ".join(
+            d.get("contenido", "") if isinstance(d, dict) else str(d)
+            for d in contexto
+        )
+
+    if isinstance(contexto, dict):
+        return contexto.get("contenido") or contexto.get("texto") or ""
+
+    if isinstance(contexto, str):
+        return contexto
+
+    return ""
 
 def extraer_numero_resolucion_estructurado(pregunta_low, contexto):
 
-    # 🔥 NORMALIZACIÓN GLOBAL (FIX REAL)
-
-    if isinstance(contexto, list):
-        partes = []
-        for d in contexto:
-            if isinstance(d, dict):
-                val = d.get("contenido") or d.get("texto")
-                if isinstance(val, str):
-                    partes.append(val)
-            elif isinstance(d, str):
-                partes.append(d)
-        contexto = " ".join(partes)
-
-    elif isinstance(contexto, dict):
-        contexto = (
-            contexto.get("contenido")
-            or contexto.get("texto")
-            or ""
-        )
-
-    if not isinstance(contexto, str) or not contexto.strip():
+    if not isinstance(pregunta_low, str):
         return None
 
-    # -----------------------------------------
-    # 🎯 SOLO SI LA PREGUNTA LO PIDE
-    # -----------------------------------------
+    contexto = normalizar_contexto(contexto)
+
+    if not contexto:
+        return None
+
+    contexto = str(contexto)
+
+    # 🔥 FIX OCR
+    contexto = re.sub(r'(?<=\d)[lI](?=\d)', '1', contexto)
+
+    # 🔥 NORMALIZACIÓN PREGUNTA
+    p = pregunta_low.lower()
+    p = p.replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
 
     if (
-        ("numero" in pregunta_low or "número" in pregunta_low)
-        and "resol" in pregunta_low
-        and "frase" not in pregunta_low
-        and "cita" not in pregunta_low
-        and "textual" not in pregunta_low
+        "numero" in p
+        and "resol" in p
+        and "frase" not in p
+        and "cita" not in p
+        and "textual" not in p
     ):
-
-        # -----------------------------------------
-        # 🔎 1. BUSCAR CON REGEX PRINCIPAL
-        # -----------------------------------------
 
         m = PATRON_RESOLUCION.search(contexto)
         if m:
-            return m.group(1) if m.groups() else m.group(0)
-
-        # -----------------------------------------
-        # 🔎 2. BUSCAR ABREVIADO (RES.)
-        # -----------------------------------------
+            return m.group(1) if m.lastindex else m.group(0)
 
         m = PATRON_RES_ABREV.search(contexto)
         if m:
-            return m.group(1) if m.groups() else m.group(0)
-
-        # -----------------------------------------
-        # 🔥 3. FALLBACK ROBUSTO
-        # -----------------------------------------
+            return m.group(1) if m.lastindex else m.group(0)
 
         fallback = extraer_numero_resolucion(contexto)
         if fallback:
@@ -72,28 +65,13 @@ def extraer_numero_resolucion_estructurado(pregunta_low, contexto):
 
     return None
 
-
 def extraer_fecha_si_aplica(pregunta_low, contexto):
+    
+    # 🔥 FIX GLOBAL PREGUNTA
+    if not isinstance(pregunta_low, str):
+        return None
 
-    # 🔥 MISMO FIX AQUÍ
-
-    if isinstance(contexto, list):
-        partes = []
-        for d in contexto:
-            if isinstance(d, dict):
-                val = d.get("contenido") or d.get("texto")
-                if isinstance(val, str):
-                    partes.append(val)
-            elif isinstance(d, str):
-                partes.append(d)
-        contexto = " ".join(partes)
-
-    elif isinstance(contexto, dict):
-        contexto = (
-            contexto.get("contenido")
-            or contexto.get("texto")
-            or ""
-        )
+    contexto = normalizar_contexto(contexto)
 
     if any(x in pregunta_low for x in ["fecha", "dd/mm"]):
         fecha = extraer_fecha_resolucion(contexto)
