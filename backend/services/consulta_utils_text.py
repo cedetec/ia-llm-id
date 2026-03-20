@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Optional
-from backend.services.retrieval_text_utils import safe_split
+from services.retrieval_text_utils import safe_split
 
 _RE_META = re.compile(r"\[DOC=.*?\]", flags=re.IGNORECASE)
 
@@ -43,9 +43,7 @@ _OCR_RUIDO = re.compile(
 # 🔢 Patrón estructural número de resolución administrativa
 # =========================================================
 _RE_NUM_RESOL = re.compile(
-    r"(?:Resoluci[oó]n(?:\s+Exent[ao])?|REX)?\s*"
-    r"(?:N[°ºo]\s*)?"
-    r"\d{1,5}\s*[/\-.]\s*\d{2,4}",
+    r"(resoluci[oó]n\s*(exenta|exento)?\s*(n[°ºo]\s*)?\d{1,5}\s*[/\-]\s*\d{2,4})",
     re.IGNORECASE
 )
 
@@ -87,6 +85,10 @@ def quitar_anio(p: str) -> str:
 def normalizar_txt(s: str) -> str:
     s = unicodedata.normalize("NFKC", s or "")
     s = s.replace("\u00A0", " ")
+
+    # 🔥 FIX OCR GLOBAL (CRÍTICO)
+    s = re.sub(r'(\d)l(\d)', r'\g<1>1\g<2>', s)
+
     return re.sub(r"\s+", " ", s).strip()
 
 def limpiar_meta_preservando_newlines(fragmento: str) -> str:
@@ -170,6 +172,14 @@ def post_corte_frase(s: str, *, max_chars: int = 260) -> str:
         s = s[0].upper() + s[1:]
     s = re.sub(r"(\.\s+)([a-záéíóúñ])", lambda m: m.group(1) + m.group(2).upper(), s)
 
+    # ❌ eliminar encabezados típicos (MUY IMPORTANTE)
+    if re.match(r'^[A-Z\s]{20,}$', s):
+        return ""
+
+    # ❌ eliminar frases sin verbo real
+    if not re.search(r'\b(aprueba|resuelve|establece|modifica|dispone)\b', s.lower()):
+        return ""
+
     return s
 
 def es_ruido(frase: str) -> bool:
@@ -202,20 +212,20 @@ def es_ruido(frase: str) -> bool:
 
 def frase_completa(f: str) -> bool:
 
-    f = (f or "").strip()
+    f = (f or "").strip().lower()
 
     if not f:
         return False
 
-    # debe tener verbo mínimo (jurídico)
+    # verbo jurídico obligatorio
     if not re.search(
-        r"\b(es|son|será|tiene|podrá|debe|aprueba|resuelve|establece|corresponde)\b",
-        f.lower()
+        r"\b(aprueba|resuelve|establece|modifica|dispone|autoriza|debe|podra)\b",
+        f
     ):
         return False
 
-    # longitud mínima suficiente
-    if len(f) < 40:
+    # longitud mínima
+    if len(f) < 50:
         return False
 
     return True
@@ -237,6 +247,9 @@ def score_semantico(frase: str, pregunta: str) -> float:
         return 0.0
 
     if not isinstance(pregunta, str):
+        return 0.0
+    
+    if not frase.strip():
         return 0.0
 
     STOP = {"el", "la", "los", "las", "de", "del", "para", "en", "por", "y", "o"}
@@ -270,6 +283,20 @@ def score_semantico(frase: str, pregunta: str) -> float:
     # -------------------------------------------------
 
     bonus = 0
+
+    # 🔥 BONUS INTENCIONAL (CLAVE TESIS)
+
+    if "aprueb" in pregunta_norm and "aprueb" in frase_norm:
+        bonus += 0.4
+
+    if "resolucion" in pregunta_norm and "resolucion" in frase_norm:
+        bonus += 0.3
+
+    if "objetivo" in pregunta_norm and "objetivo" in frase_norm:
+        bonus += 0.3
+
+    if "requisit" in pregunta_norm and "requisit" in frase_norm:
+        bonus += 0.25
 
     keywords_importantes = {
         "objetivo": 0.25,
