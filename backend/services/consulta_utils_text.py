@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Optional
-from services.retrieval_text_utils import safe_split
+from backend.services.retrieval_text_utils import safe_split
 
 _RE_META = re.compile(r"\[DOC=.*?\]", flags=re.IGNORECASE)
 
@@ -43,7 +43,7 @@ _OCR_RUIDO = re.compile(
 # 🔢 Patrón estructural número de resolución administrativa
 # =========================================================
 _RE_NUM_RESOL = re.compile(
-    r"(resoluci[oó]n\s*(exenta|exento)?\s*(n[°ºo]\s*)?\d{1,5}\s*[/\-]\s*\d{2,4})",
+    r"(resoluci[oó]n\s*(exenta|exento)?\s*(n[°ºo]\s*)?\d{1,5}\s*[/\-]\s*\d{2,4}|\b\d{3,5}/\d{4}\b)",
     re.IGNORECASE
 )
 
@@ -159,6 +159,16 @@ def post_corte_frase(s: str, *, max_chars: int = 260) -> str:
 
     # eliminar encabezados típicos
     s = re.sub(r"^(seccion|capitulo|titulo)\s+[ivx0-9]+[:\-]?\s*", "", s, flags=re.I)
+
+    # ❌ eliminar frases genéricas típicas (CRÍTICO TESIS)
+    if any(x in s.lower() for x in [
+        "surge la necesidad",
+        "se requiere",
+        "se informa",
+        "con el fin de",
+        "para efectos de"
+    ]):
+        return ""
     
     # evitar basura pero NO eliminar frases útiles
     if es_ruido(s):
@@ -177,7 +187,10 @@ def post_corte_frase(s: str, *, max_chars: int = 260) -> str:
         return ""
 
     # ❌ eliminar frases sin verbo real
-    if not re.search(r'\b(aprueba|resuelve|establece|modifica|dispone)\b', s.lower()):
+    if not re.search(
+        r'\b(aprueba|resuelve|establece|modifica|dispone|es|son|podra|podrán|debe)\b',
+        s.lower()
+    ):
         return ""
 
     return s
@@ -201,7 +214,9 @@ def es_ruido(frase: str) -> bool:
         return True
 
     # texto repetitivo típico OCR
-    if len(set(safe_split(f))) < 5:
+    tokens = safe_split(f)
+
+    if len(set(tokens)) < 5:
         return True
 
     return False
@@ -219,7 +234,7 @@ def frase_completa(f: str) -> bool:
 
     # verbo jurídico obligatorio
     if not re.search(
-        r"\b(aprueba|resuelve|establece|modifica|dispone|autoriza|debe|podra)\b",
+        r"\b(aprueba|resuelve|establece|modifica|dispone|autoriza|debe|podra|podrá)\b",
         f
     ):
         return False
@@ -257,15 +272,8 @@ def score_semantico(frase: str, pregunta: str) -> float:
     frase_norm = normalizar_txt(frase).lower()
     pregunta_norm = normalizar_txt(pregunta).lower()
 
-    tokens_f = {
-        t for t in re.findall(r"[a-záéíóúñ0-9]+", frase_norm)
-        if t not in STOP
-    }
-
-    tokens_p = {
-        t for t in re.findall(r"[a-záéíóúñ0-9]+", pregunta_norm)
-        if t not in STOP
-    }
+    tokens_f = set(safe_split(frase_norm)) - STOP
+    tokens_p = set(safe_split(pregunta_norm)) - STOP
 
     if not tokens_p:
         return 0.0
