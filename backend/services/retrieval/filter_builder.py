@@ -1,6 +1,6 @@
 import re
-from services.retrieval_text_utils import tokens, normalizar
-from services.retrieval.doc_utils import normalizar_nombre_doc
+from backend.services.retrieval_text_utils import tokens, normalizar
+from backend.services.retrieval.doc_utils import normalizar_nombre_doc
 
 
 SECCIONES_MAP = {
