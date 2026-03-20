@@ -139,4 +139,12 @@ def safe_split(x):
 # =========================================================
 
 def norm_txt_lineal(s: str) -> str:
+    if not s:
+        return ""
+
+    # 🔥 FIX OCR comunes
+    s = re.sub(r'(\d)l(\d)', r'\11\2', s)   # 1l0 → 110
+    s = re.sub(r'(\d)I(\d)', r'\1\2', s)    # 1I0 → 10
+    s = re.sub(r'(\d)o(\d)', r'\1\2', s)    # 1o0 → 100
+
     return normalizar(s)
