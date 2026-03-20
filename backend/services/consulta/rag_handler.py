@@ -57,7 +57,8 @@ def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
     # 🔥 SIEMPRE USAR FRASES (CLAVE RAG)
     # =====================================================
 
-    tokens = safe_split(normalizar(pregunta))
+    p_norm = normalizar(pregunta)
+    tokens = safe_split(p_norm if isinstance(p_norm, str) else "")
 
     frases_top = []
 
