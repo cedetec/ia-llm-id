@@ -14,7 +14,7 @@ def boost_frase(pregunta, texto):
     if preg in texto:
         return 80
 
-    tokens = safe_split(preg)
+    tokens = safe_split(preg if isinstance(preg, str) else "")
 
     if len(tokens) >= 3:
         for i in range(len(tokens) - 2):
@@ -49,7 +49,7 @@ def boost_posicion(meta):
 
 def penalizar_repeticion(texto):
 
-    words = safe_split(texto)
+    words = safe_split(texto if isinstance(texto, str) else "")
 
     if len(words) < 10:
         return 0
