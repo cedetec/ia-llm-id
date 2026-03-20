@@ -1,16 +1,16 @@
 # backend/services/retrieval_service.py
 
-from backend.services.retrieval.doc_utils import extraer_nombre_documento
-from backend.services.retrieval.intent_utils import (
+from services.retrieval.doc_utils import extraer_nombre_documento
+from services.retrieval.intent_utils import (
     detectar_seccion_simple,
     detectar_modo_cita,
 )
-from backend.services.retrieval.filter_builder import construir_filtro_inicial
-from backend.services.retrieval.chunk_filters import filtrar_posicional
-from backend.services.retrieval.ranking_pipeline import rankear_chunks
-from backend.services.retrieval.citation_utils import aplicar_filtro_cita
-from backend.services.retrieval_mongo_repo import find_docs
-from backend.services.retrieval_text_utils import tokens, normalizar
+from services.retrieval.filter_builder import construir_filtro_inicial
+from services.retrieval.chunk_filters import filtrar_posicional
+from services.retrieval.ranking_pipeline import rankear_chunks
+from services.retrieval.citation_utils import aplicar_filtro_cita
+from services.retrieval_mongo_repo import find_docs
+from services.retrieval_text_utils import tokens, normalizar
 
 import re
 
@@ -94,7 +94,39 @@ def obtener_contexto(
     # 🔎 Construir filtro
     # --------------------------------------------------
 
-    filtro_base = construir_filtro_inicial(pregunta, None)
+    pregunta_low = normalizar(pregunta)
+
+    # 🔥 Filtro inteligente por intención
+    if "aprueb" in pregunta_low:
+        filtro_base = {
+            "$or": [
+                {"contenido_norm": {"$regex": "aprueb", "$options": "i"}},
+                {"contenido_norm": {"$regex": "aprueban", "$options": "i"}},
+                {"contenido_norm": {"$regex": "apruebase", "$options": "i"}},
+                {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
+                {"contenido_norm": {"$regex": "resuelve", "$options": "i"}},
+            ]
+        }
+
+    elif "objetivo" in pregunta_low:
+        filtro_base = {
+            "$or": [
+                {"contenido_norm": {"$regex": "objetivo", "$options": "i"}},
+                {"contenido_norm": {"$regex": "finalidad", "$options": "i"}},
+            ]
+        }
+
+    elif "requisito" in pregunta_low:
+        filtro_base = {
+            "$or": [
+                {"contenido_norm": {"$regex": "requisito", "$options": "i"}},
+                {"contenido_norm": {"$regex": "debe", "$options": "i"}},
+            ]
+        }
+
+    else:
+        # fallback original
+        filtro_base = construir_filtro_inicial(pregunta, None)
 
     if nombre_doc:
 
@@ -151,7 +183,7 @@ def obtener_contexto(
 
     for d in docs:
 
-        cont = d.get("contenido") or d.get("texto_extraido")
+        cont = d.get("contenido_norm") or d.get("texto_extraido")
 
         if not cont or len(cont) < 40:
             continue
@@ -253,7 +285,7 @@ def obtener_contexto(
 
     for r in ranked:
 
-        cont = r.get("contenido")
+        cont = r.get("contenido_norm")
 
         if not cont or cont in seen:
             continue
@@ -272,7 +304,7 @@ def obtener_contexto(
     # fallback final
     if not resultados:
         for d in docs[:top_k]:
-            cont = d.get("contenido")
+            cont = d.get("contenido_norm")
             if cont:
                 resultados.append(cont.strip())
 
