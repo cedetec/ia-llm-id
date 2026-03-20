@@ -1,7 +1,7 @@
 #retrieval_mongo_repo.py
 from __future__ import annotations
 from typing import Dict, List, Any
-from database import index_collection
+from database.mongo import index_collection
 
 
 def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
