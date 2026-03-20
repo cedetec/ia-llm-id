@@ -1,29 +1,29 @@
 #ranking_pipeline.py
 import re
 
-from backend.services.embedding_service import embed_text
-from backend.services.retrieval_scoring import score_chunk
-from backend.services.rerank_legal import rerank_legal_chunks
+from services.embedding_service import embed_text
+from services.retrieval_scoring import score_chunk
+from services.rerank_legal import rerank_legal_chunks
 
-from backend.services.ranking_utils import (
+from services.ranking_utils import (
     cosine,
     normalizar_txt,
 )
 
-from backend.services.ranking_intent import (
+from services.ranking_intent import (
     detectar_intent,
     detectar_pregunta_beneficiarios
 )
 
-from backend.services.ranking_boosts import (
+from services.ranking_boosts import (
     boost_frase,
     boost_posicion,
     penalizar_repeticion
 )
 
-from backend.services.ranking_heuristicas_legales import heuristicas_juridicas
-from backend.services.ranking_filters import es_texto_administrativo
-from backend.services.retrieval.ranking_boosts_anid import aplicar_boosts_anid
+from services.ranking_heuristicas_legales import heuristicas_juridicas
+from services.ranking_filters import es_texto_administrativo
+from services.retrieval.ranking_boosts_anid import aplicar_boosts_anid
 
 
 def rankear_chunks(pregunta, docs, toks, modo_cita=False):
@@ -93,14 +93,14 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             except:
                 score_sem = 0.0
 
-        # --- normalización más suave ---
-        score_lex_norm = score_lex / (score_lex + 10) if score_lex > 0 else 0
+        # 🔥 SCORE HÍBRIDO ROBUSTO
 
-        # --- mezcla más estable ---
+        score_sem = score_sem if score_sem > 0 else 0
+
         total = (
-            score_lex_norm * 0.5 +
-            score_sem * 0.5
-        ) * 100
+            (score_lex * 2.0) +     # 👈 léxico domina
+            (score_sem * 10.0)      # 👈 semántico fuerte si existe
+        )
 
         # ----------------------------------
         # 🔥 PRE-SCORE (NUEVO NIVEL)
@@ -119,6 +119,13 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
         elif idx > 50:
             d["pre_score"] -= 1
+
+        # ----------------------------------
+        # 🔥 INICIO DOCUMENTO = ALTA PRIORIDAD
+        # ----------------------------------
+
+        if meta.get("chunk_index", 999) < 10:
+            total += 8
 
         # ----------------------------------
         # 🔥 BOOST POR LONGITUD
@@ -167,8 +174,17 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         # 🧠 INTENCIÓN JURÍDICA
         # ----------------------------------
 
-        if intent == "resolucion" and tipo in ["resolucion", "articulo_resolucion"]:
-            total += 8
+        if intent == "resolucion":
+            if tipo in ["resolucion", "articulo_resolucion"]:
+                total += 20
+            elif "resuelv" in cont_l:
+                total += 25
+
+        elif intent == "objetivo":
+            if tipo in ["bases_concurso", "definicion"]:
+                total += 12
+            if "objetivo" in cont_l:
+                total += 20
 
         elif intent == "fundamento" and tipo == "considerando":
             total += 6
@@ -210,11 +226,31 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         # 🧹 PENALIZAR OCR BASURA
         # ----------------------------------
 
-        if re.search(r'(tabla|figura|ranking|editorial)', cont_l):
-            total -= 6
+        if re.search(r'(tabla|figura|ranking|editorial|impacto|scopus)', cont_l):
+            total -= 15
 
         if sum(c.isdigit() for c in cont_l) > 60:
             total -= 5
+
+        # ----------------------------------
+        # 🔥 BOOST ENCABEZADOS LEGALES
+        # ----------------------------------
+
+        if re.search(r'\bresuelv[eo]\b', cont_l):
+            total += 25
+
+        if re.search(r'\baprueb[ae]\b', cont_l):
+            total += 20
+
+        if re.search(r'\bobjetivo(s)?\b', cont_l):
+            total += 15
+
+        if re.search(r'\bart[ií]culo\s+\d+', cont_l):
+            total += 10
+
+        # ❌ penalizar contexto negativo
+        if "no se aprueb" in cont_l:
+            total -= 6
 
         # ----------------------------------
         # BOOSTS ESPECIALES ANID
@@ -258,13 +294,28 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         elif tipo == "resolucion":
             boost += 4
 
-        d["score"] = base_score * 100 + boost
+        d["score"] = base_score + boost
 
         ranked.append(d)
 
     # ----------------------------------
     # ORDENAR
     # ----------------------------------
+
+    # 🔥 penalizar duplicados semánticos
+    seen_texts = set()
+    filtered = []
+
+    for d in ranked:
+        txt = d.get("contenido_norm", "")[:200]
+
+        if txt in seen_texts:
+            continue
+
+        seen_texts.add(txt)
+        filtered.append(d)
+
+    ranked = filtered
 
     ranked.sort(key=lambda x: x["score"], reverse=True)
 
