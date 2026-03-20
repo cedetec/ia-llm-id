@@ -213,7 +213,7 @@ def score_chunk(
         penalty = 0
 
         # evitar chunks demasiado pequeños
-        if not isinstance(c_low, str) or len(safe_split(c_low)) < 5:
+        if not isinstance(c_low, str) or len(safe_split(c_low if isinstance(c_low, str) else "")) < 5:
             return 0.0
 
         pres, occ = score_tokens(c_low, tokens)
@@ -296,7 +296,7 @@ def score_chunk(
                 penalty -= 6
 
             # preferir frases cortas en citas
-            words = len(safe_split(c_low))
+            words = len(safe_split(c_low if isinstance(c_low, str) else ""))
 
             if words < 8:
                 penalty -= 4
@@ -312,11 +312,11 @@ def score_chunk(
         # SCORE FINAL
         # =====================================================
 
-        if modo_cita and len(safe_split(c_low)) > 200:
+        if modo_cita and len(safe_split(c_low if isinstance(c_low, str) else "")) > 200:
             penalty -= 10
 
 
-        length_norm = max(len(safe_split(c_low)), 1)
+        length_norm = max(len(safe_split(c_low if isinstance(c_low, str) else "")), 1)
         density = occ / length_norm
 
         total = (
