@@ -1,7 +1,7 @@
 #retrieval_mongo_repo.py
 from __future__ import annotations
 from typing import Dict, List, Any
-from database.mongo import index_collection
+from database import index_collection
 
 
 def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
@@ -25,7 +25,7 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
     # asegurar contenido válido
     # ----------------------------------------
 
-    contenido_cond = {"contenido": {"$exists": True, "$ne": ""}}
+    contenido_cond = {"contenido_norm": {"$exists": True, "$ne": ""}}
 
     if query:
         query = {
@@ -47,6 +47,7 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
             query,
             {
                 "contenido": 1,
+                "contenido_norm": 1,  # 🔥 CRÍTICO
                 "metadata": 1,
                 "embedding": 1
             }
@@ -67,6 +68,9 @@ def find_docs(filtro: Dict, *, scan: int) -> List[Dict[str, Any]]:
 
         if "contenido" not in d:
             d["contenido"] = ""
+
+        if "contenido_norm" not in d or not d["contenido_norm"]:
+            d["contenido_norm"] = d.get("contenido", "")
 
     print("DOCS TRAIDOS:", len(docs))
     print("PRIMEROS DOCS:", [
