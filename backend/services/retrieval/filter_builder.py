@@ -1,8 +1,6 @@
-# filter_builder.py
-
 import re
-from backend.services.retrieval_text_utils import tokens
-from backend.services.retrieval.doc_utils import normalizar_nombre_doc
+from services.retrieval_text_utils import tokens, normalizar
+from services.retrieval.doc_utils import normalizar_nombre_doc
 
 
 SECCIONES_MAP = {
@@ -22,18 +20,19 @@ SECCIONES_MAP = {
 
 def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
 
-    condiciones_and = []
-    condiciones_or = []
+    pregunta_norm = normalizar(pregunta)
+    pregunta_low = pregunta.lower()
 
-    # --------------------------------------
-    # 1️⃣ DOCUMENTO (filtro fuerte)
-    # --------------------------------------
+    # ==================================================
+    # 🔥 0️⃣ FILTRO DOCUMENTO BASE
+    # ==================================================
+
+    filtro_doc = None
 
     if nombre_doc:
-
         nombre_doc_norm = normalizar_nombre_doc(nombre_doc)
 
-        condiciones_and.append({
+        filtro_doc = {
             "$or": [
                 {
                     "metadata.documento_norm": {
@@ -48,11 +47,73 @@ def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
                     }
                 }
             ]
-        })
+        }
 
-    # --------------------------------------
-    # 2️⃣ FRASES EXACTAS (alta precisión)
-    # --------------------------------------
+    # ==================================================
+    # 🔥 1️⃣ INTENCIÓN: APROBACIÓN / RESOLUCIÓN (EARLY RETURN)
+    # ==================================================
+
+    if "aprueb" in pregunta_low or "resuelve" in pregunta_low:
+
+        condiciones = [
+            {"contenido_norm": {"$regex": "aprueb", "$options": "i"}},
+            {"contenido_norm": {"$regex": "apruebase", "$options": "i"}},
+            {"contenido_norm": {"$regex": "resuelve", "$options": "i"}},
+            {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
+        ]
+
+        if filtro_doc:
+            return {"$and": [filtro_doc, {"$or": condiciones}]}
+
+        return {"$or": condiciones}
+
+    # ==================================================
+    # 🔥 2️⃣ INTENCIÓN: NÚMERO DE RESOLUCIÓN
+    # ==================================================
+
+    if "resolucion" in pregunta_low and "numero" in pregunta_low:
+
+        condiciones = [
+            {"contenido_norm": {"$regex": r"\d{1,5}[/\-]\d{2,4}", "$options": "i"}},
+            {"contenido_norm": {"$regex": "n°", "$options": "i"}},
+            {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
+        ]
+
+        if filtro_doc:
+            return {"$and": [filtro_doc, {"$or": condiciones}]}
+
+        return {"$or": condiciones}
+
+    # ==================================================
+    # 🔥 3️⃣ INTENCIONES SEMÁNTICAS (SIN EARLY RETURN)
+    # ==================================================
+
+    condiciones_or = []
+
+    if "objetivo" in pregunta_norm:
+        condiciones_or.extend([
+            {"contenido_norm": {"$regex": "objetivo", "$options": "i"}},
+            {"contenido_norm": {"$regex": "finalidad", "$options": "i"}},
+            {"metadata.seccion": "objetivo"},
+        ])
+
+    elif "requisito" in pregunta_norm:
+        condiciones_or.extend([
+            {"contenido_norm": {"$regex": "requisito", "$options": "i"}},
+            {"contenido_norm": {"$regex": "debe", "$options": "i"}},
+            {"metadata.seccion": "requisitos"},
+        ])
+
+    elif "postul" in pregunta_norm or "beneficiario" in pregunta_norm:
+        condiciones_or.extend([
+            {"contenido_norm": {"$regex": "postul", "$options": "i"}},
+            {"contenido_norm": {"$regex": "beneficiario", "$options": "i"}},
+            {"metadata.seccion": "postulacion"},
+        ])
+
+    # ==================================================
+    # 🔥 4️⃣ FRASES EXACTAS (ALTA PRECISIÓN)
+    # ==================================================
 
     frases = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', pregunta)
 
@@ -60,62 +121,45 @@ def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
         f = f.strip()
         if len(f) > 3:
             condiciones_or.append({
-                "contenido": {
+                "contenido_norm": {
                     "$regex": re.escape(f),
                     "$options": "i"
                 }
             })
 
-    # --------------------------------------
-    # 3️⃣ TOKENS (recall flexible)
-    # --------------------------------------
+    # ==================================================
+    # 🔥 5️⃣ TOKENS (SOLO SI NO HAY NADA)
+    # ==================================================
 
-    toks = tokens(pregunta)
+    if not condiciones_or:
 
-    toks = [t for t in toks if len(t) > 3][:6]
+        toks = tokens(pregunta)
+        toks = [t for t in toks if len(t) > 4][:5]
 
-    for t in toks:
-        condiciones_or.append({
-            "contenido": {
-                "$regex": re.escape(t),
-                "$options": "i"
-            }
-        })
-
-    # --------------------------------------
-    # 4️⃣ SECCIÓN (NO BLOQUEANTE)
-    # --------------------------------------
-
-    pregunta_lower = pregunta.lower()
-
-    for palabra, seccion in SECCIONES_MAP.items():
-
-        if palabra in pregunta_lower:
-
+        for t in toks:
             condiciones_or.append({
-                "metadata.seccion": seccion
+                "contenido_norm": {
+                    "$regex": re.escape(t),
+                    "$options": "i"
+                }
             })
 
-            break
+    # ==================================================
+    # 🔥 6️⃣ CONSTRUCCIÓN FINAL
+    # ==================================================
 
-    # --------------------------------------
-    # 🔥 CONSTRUCCIÓN FINAL
-    # --------------------------------------
-
-    filtro = {}
-
-    if condiciones_and and condiciones_or:
-        filtro = {
+    if filtro_doc and condiciones_or:
+        return {
             "$and": [
-                *condiciones_and,
+                filtro_doc,
                 {"$or": condiciones_or}
             ]
         }
 
-    elif condiciones_and:
-        filtro = {"$and": condiciones_and}
+    elif filtro_doc:
+        return filtro_doc
 
     elif condiciones_or:
-        filtro = {"$or": condiciones_or}
+        return {"$or": condiciones_or}
 
-    return filtro
+    return {}
