@@ -36,8 +36,8 @@ def normalizar_txt(txt):
 
 def similitud_textual(a, b):
 
-    sa = set(safe_split(a))
-    sb = set(safe_split(b))
+    sa = set(safe_split(a if isinstance(a, str) else ""))
+    sb = set(safe_split(b if isinstance(b, str) else ""))
 
     inter = sa & sb
     union = sa | sb
