@@ -3,7 +3,7 @@
 import re
 import hashlib
 from backend.services.normalizador_pdf_juridico import normalizar_texto_juridico
-from backend.services.retrieval_text_utils import normalizar
+from backend.services.retrieval_text_utils import normalizar, safe_split
 
 
 # ==========================================
@@ -14,7 +14,7 @@ def limpiar_texto(texto: str) -> str:
     texto = normalizar_texto_juridico(texto)
     t = texto.lower()
 
-    palabras = t.split()
+    palabras = safe_split(t)
     if not palabras:
         return ""
 
@@ -22,10 +22,12 @@ def limpiar_texto(texto: str) -> str:
     validas = [
         p for p in palabras
         if sum(c in "aeiouáéíóú" for c in p) >= 1
+        or p.isupper()
+        or any(c.isdigit() for c in p)
     ]
 
     # 🔥 bajar umbral (antes 60%)
-    if len(validas) < len(palabras) * 0.3:
+    if len(validas) < len(palabras) * 0.15:
         return ""
 
     # ❌ SOLO si es MUY extremo
@@ -44,7 +46,15 @@ def limpiar_texto(texto: str) -> str:
 # ==========================================
 
 SECCIONES = re.compile(
-    r'\b(VISTOS|CONSIDERANDO|RESUELV[EO])\b',
+    r'\b('
+    r'VISTOS|CONSIDERANDO|RESUELV[EO]|'
+    r'\d+\.\s*(OBJETIVO|FINALIDAD|PROPOSITO)|'
+    r'\d+\.\s*(REQUISITOS?)|'
+    r'\d+\.\s*(QUIENES PUEDEN POSTULAR|BENEFICIARIOS?)|'
+    r'\d+\.\s*(FINANCIAMIENTO)|'
+    r'\d+\.\s*(DURACION|PLAZO)|'
+    r'\d+\.\s*(EVALUACION)'
+    r')\b',
     re.IGNORECASE
 )
 
@@ -71,10 +81,10 @@ def chunkear_documento(fragmentos: list[str]):
         print("❌ TEXTO VACÍO DESPUÉS DE LIMPIEZA")
         return []
 
-    print("PALABRAS:", len(texto.split()))
+    print("PALABRAS:", len(safe_split(texto)))
     print("PREVIEW:", texto[:300])
 
-    if not texto or len(texto.split()) < 40:
+    if not texto or len(safe_split(texto)) < 25:
         # ⚠️ fallback en vez de matar documento
         return fallback_chunking(texto)
 
@@ -88,20 +98,23 @@ def chunkear_documento(fragmentos: list[str]):
     # 3️⃣ reconstrucción estructurada
     for i in range(1, len(partes), 2):
 
-        print("\n--- BLOQUE ---")
-        print("TITULO:", titulo)
-        print("LARGO BLOQUE:", len(bloque.split()))
+        if len(chunks) > 220:
+            break
 
         titulo = partes[i]
         contenido = partes[i+1] if i+1 < len(partes) else ""
 
         bloque = f"{titulo} {contenido}".strip()
 
+        print("\n--- BLOQUE ---")
+        print("TITULO:", titulo)
+        print("LARGO BLOQUE:", len(safe_split(bloque)))
+
         # filtros anti ruido
         if len(bloque) < 80:
             continue
 
-        if len(bloque.split()) < 30:
+        if len(safe_split(bloque)) < 30:
             continue
 
         # metadata base
@@ -115,21 +128,32 @@ def chunkear_documento(fragmentos: list[str]):
         # dividir si es muy grande
         subchunks = dividir_si_grande(bloque)
 
+        # 🔥 limitar subchunks por bloque (EVITA EXPLOSIÓN DE CHUNKS)
+        if len(subchunks) > 6:
+            subchunks = subchunks[:6]
+
+        # límite por documento (MUY IMPORTANTE)
+        if len(chunks) > 220:
+            break
+
         print("SUBCHUNKS GENERADOS:", len(subchunks))
 
         for sub in subchunks:
+
+            if len(chunks) > 220:
+                break
 
             # ❌ evitar OCR residual
             if re.search(r'[bcdfghjklmnpqrstvwxyz]{5,}', sub.lower()):
                 continue
 
-            if len(sub.split()) < 15:
+            if len(safe_split(sub)) < 15:
                 continue
 
             tipo_real = detectar_tipo_chunk(sub)  # 🔥 FIX CLAVE
 
             # 🔥 DESCARTE CRÍTICO (AQUÍ)
-            if tipo_real == "general" and len(sub.split()) < 80:
+            if tipo_real == "general" and len(safe_split(sub)) < 25:
                 continue
 
             meta_sub = {
@@ -148,6 +172,10 @@ def chunkear_documento(fragmentos: list[str]):
     if not chunks:
         chunks = fallback_chunking(texto)
 
+    # 🔥 límite global definitivo
+    if len(chunks) > 220:
+        chunks = chunks[:220]
+
     print("✅ CHUNKS FINALES:", len(chunks))
 
     # 5️⃣ eliminar duplicados
@@ -160,8 +188,10 @@ def chunkear_documento(fragmentos: list[str]):
 
 def dividir_si_grande(texto: str):
 
-    MAX = 1800   # 🔥 antes 1100
-    OVERLAP = 200
+    MAX = 1200
+    OVERLAP = 120
+    MIN_CHARS = 300
+    MAX_PARTES = 6
 
     if len(texto) <= MAX:
         return [texto]
@@ -169,18 +199,26 @@ def dividir_si_grande(texto: str):
     partes = []
     i = 0
 
-    while i < len(texto):
+    while i < len(texto) and len(partes) < MAX_PARTES:
         sub = texto[i:i+MAX]
 
-        corte = sub.rfind(". ")
-        if corte > 300:
-            sub = sub[:corte]
+        if len(sub.strip()) < MIN_CHARS:
+            i += MAX - OVERLAP
+            continue
+
+        # 🔥 cortar por párrafo o punto (MEJOR)
+        corte_parrafo = sub.rfind("\n")
+        if corte_parrafo > 300:
+            sub = sub[:corte_parrafo]
+        else:
+            corte = sub.rfind(". ")
+            if corte > 300:
+                sub = sub[:corte]
 
         partes.append(sub.strip())
         i += MAX - OVERLAP
 
     return partes
-
 
 # ==========================================
 # 🔥 FALLBACK
@@ -190,14 +228,15 @@ def fallback_chunking(texto: str):
 
     MAX = 1600
     OVERLAP = 200
+    MAX_CHUNKS = 80   # 🔥 límite fallback
 
     chunks = []
     i = 0
 
-    while i < len(texto):
+    while i < len(texto) and len(chunks) < MAX_CHUNKS:
         sub = texto[i:i+MAX]
 
-        if len(sub.split()) > 15:
+        if len(safe_split(sub)) > 15:
             chunks.append({
                 "contenido": sub.strip(),
                 "metadata": {
@@ -222,7 +261,7 @@ def detectar_tipo_chunk(texto: str):
     t_low = t.lower()
 
     # 🔥 evitar textos basura muy cortos
-    if len(t_low.split()) < 20:
+    if len(safe_split(t_low)) < 20:
         return "general"
 
     scores = {
@@ -230,7 +269,14 @@ def detectar_tipo_chunk(texto: str):
         "requisito": 0,
         "beneficiarios": 0,
         "resolucion": 0,
-        "considerando": 0
+        "considerando": 0,
+        "financiamiento": 0,
+        "duracion": 0,
+        "evaluacion": 0,
+        "plazos": 0,
+        "adjudicacion": 0,
+        "formalizacion": 0,
+        "definiciones": 0
     }
 
     # ==========================================
@@ -326,11 +372,95 @@ def detectar_tipo_chunk(texto: str):
         scores["considerando"] += 50
 
     # ==========================================
+    # 🔥 FINANCIAMIENTO
+    # ==========================================
+
+    if "monto" in t_low:
+        scores["financiamiento"] += 50
+
+    if "financiamiento" in t_low:
+        scores["financiamiento"] += 45
+
+    if "subsidio" in t_low:
+        scores["financiamiento"] += 40
+
+    if re.search(r'\$\s?\d', t_low):
+        scores["financiamiento"] += 35
+
+
+    # ==========================================
+    # 🔥 DURACIÓN
+    # ==========================================
+
+    if "duracion" in t_low:
+        scores["duracion"] += 45
+
+    if "meses" in t_low:
+        scores["duracion"] += 35
+
+    if "anos" in t_low or "años" in t_low:
+        scores["duracion"] += 35
+
+    if re.search(r'\d+\s*(mes|meses|ano|anos|año|años)', t_low):
+        scores["duracion"] += 40
+
+    # ==========================================
+    # 🔥 EVALUACIÓN
+    # ==========================================
+
+    if "evaluacion" in t_low:
+        scores["evaluacion"] += 50
+
+    if "criterios de evaluacion" in t_low:
+        scores["evaluacion"] += 60
+
+
+    # ==========================================
+    # 🔥 PLAZOS
+    # ==========================================
+
+    if "plazo" in t_low:
+        scores["plazos"] += 40
+
+    if re.search(r'\d+\s*(dias|meses)', t_low):
+        scores["plazos"] += 30
+
+
+    # ==========================================
+    # 🔥 ADJUDICACIÓN
+    # ==========================================
+
+    if "adjudicacion" in t_low:
+        scores["adjudicacion"] += 50
+
+    if "adjudicar" in t_low:
+        scores["adjudicacion"] += 40
+
+
+    # ==========================================
+    # 🔥 FORMALIZACIÓN
+    # ==========================================
+
+    if "formalizacion" in t_low:
+        scores["formalizacion"] += 50
+
+    if "firma del convenio" in t_low:
+        scores["formalizacion"] += 40
+
+
+    # ==========================================
+    # 🔥 DEFINICIONES
+    # ==========================================
+
+    if "definiciones" in t_low:
+        scores["definiciones"] += 60
+
+    # ==========================================
     # 🔥 PENALIZACIONES (CLAVE)
     # ==========================================
 
     # evitar falsos positivos de objetivo
-    if "objetivo" in t_low and len(t_low.split()) > 400:
+    if "objetivo" in t_low and len(safe_split(t_low)) > 400:
         scores["objetivo"] -= 20
 
     # evitar beneficiarios inflado
