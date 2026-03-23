@@ -1,7 +1,9 @@
+#fondos_service.py
 from pymongo import MongoClient
 import os
 import re
 from dotenv import load_dotenv
+from backend.services.retrieval_text_utils import safe_split
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
@@ -9,7 +11,6 @@ print("📡 Conectando a MongoDB en:", MONGO_URI)
 
 client = MongoClient(MONGO_URI)
 db = client["asistenteID"]
-
 
 def limpiar_regex(texto: str) -> str:
     """
@@ -22,30 +23,41 @@ def limpiar_regex(texto: str) -> str:
     # escapamos símbolos especiales de regex: * + ? [ ] ( ) { } | ^
     return re.escape(texto)
 
+campos_busqueda = [
+    "nombre",
+    "descripcion",
+    "objetivo",
+    "beneficiarios",
+    "requisitos",
+    "financiamiento",
+    "cofinanciamiento",
+    "trl",
+    "equidad_genero",
+    "duracion",
+    "monto_maximo"
+]
+
 
 def buscar_fondos_relevantes(pregunta: str, limite: int = 10):
-    """
-    Busca registros relevantes en la colección fondos_historicos.
-    Ahora:
-    - limpia la pregunta antes de usarla como regex
-    - evita errores por campos None
-    - usa matching difuso más flexible
-    """
+
     try:
         if not pregunta:
             return []
 
-        tokens = [t for t in pregunta.split() if len(t) > 2]
+        tokens = [t for t in safe_split(pregunta) if len(t) > 2]
 
-        regex_list = [
-            {"$regex": re.escape(t), "$options": "i"}
-            for t in tokens
-        ]
+        if not tokens:
+            return []
 
         filtro = {
-            "$or": [
-                {campo: {"$all": regex_list}}
-                for campo in campos_busqueda
+            "$and": [
+                {
+                    "$or": [
+                        {campo: {"$regex": t, "$options": "i"}}
+                        for campo in campos_busqueda
+                    ]
+                }
+                for t in tokens
             ]
         }
 
@@ -55,7 +67,6 @@ def buscar_fondos_relevantes(pregunta: str, limite: int = 10):
             .limit(limite)
         )
 
-        # Seguridad: evitar None o valores vacíos
         resultados_limpios = [
             {k: (v if v is not None else "") for k, v in r.items()}
             for r in resultados
