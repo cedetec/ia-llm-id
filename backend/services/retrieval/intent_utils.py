@@ -6,20 +6,65 @@ def detectar_seccion_simple(pregunta: str):
 
     p = pregunta.lower()
 
-    if any(k in p for k in ["objetivo", "finalidad", "propósito", "proposito"]):
-        return "objetivo"
-
-    if any(k in p for k in ["requisitos", "requisito"]):
-        return "requisitos"
-
-    if any(k in p for k in ["postular", "postulación", "postulacion", "quienes pueden"]):
-        return "postulacion"
-
-    if any(k in p for k in ["beneficiarios"]):
+    # -------------------------
+    # BENEFICIARIOS
+    # -------------------------
+    if re.search(r'quien(es)? puede(n)? (postular|participar)', p):
         return "beneficiarios"
 
-    if any(k in p for k in ["resolución", "resolucion"]):
+    if any(x in p for x in [
+        "quienes pueden postular",
+        "pueden postular",
+        "podran postular",
+        "beneficiarios",
+        "quien puede postular",
+    ]):
+        return "beneficiarios"
+
+    # -------------------------
+    # OBJETIVO
+    # -------------------------
+    if any(x in p for x in [
+        "objetivo del concurso",
+        "objetivo general",
+        "finalidad",
+        "proposito",
+        "propósito",
+        "para que es el concurso",
+    ]):
+        return "objetivo"
+
+    # -------------------------
+    # REQUISITOS
+    # -------------------------
+    if any(x in p for x in [
+        "requisitos",
+        "requisito",
+        "condiciones",
+        "que se necesita",
+        "como postular",
+    ]):
+        return "requisito"
+
+    # -------------------------
+    # RESOLUCIÓN
+    # -------------------------
+    if any(x in p for x in [
+        "resolucion",
+        "resolución",
+        "resuelve",
+        "rex",
+        "numero de resolucion",
+        "n°",
+    ]):
         return "resolucion"
+
+    # fallback suave
+    if "objetivo" in p:
+        return "objetivo"
+    
+    if re.search(r'cual(es)? es|que es', p) and "objetivo" in p:
+        return "objetivo"
 
     return None
 
@@ -28,19 +73,14 @@ def detectar_modo_cita(pregunta: str) -> bool:
 
     p = pregunta.lower()
 
-    patrones = [
-        "cita",
-        "citar",
-        "cita textual",
-        "frase textual",
-        "literal",
-        "textualmente",
-        "extrae una frase",
-        "extrae una cita",
-        "responde con una frase",
-        "menciona una frase",
-        "indica una frase",
-        "muestra una frase"
-    ]
+    if re.search(r'\b(cita|citar|textual|literal)\b', p):
+        return True
 
-    return any(x in p for x in patrones)
+    if any(x in p for x in [
+        "frase textual",
+        "extrae una frase",
+        "responde con una frase",
+    ]):
+        return True
+
+    return False
