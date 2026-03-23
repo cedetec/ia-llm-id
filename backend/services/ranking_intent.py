@@ -1,49 +1,74 @@
 # ranking_intent.py
 import re
-from backend.services.ranking_utils import normalizar_txt
+from backend.services.retrieval_text_utils import normalizar
 
 
 def detectar_intent(preg):
 
-    preg = normalizar_txt(preg)
+    preg = normalizar(preg)
 
-    if any(x in preg for x in ["resolucion","resuelvo","acto administrativo"]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 1: RESOLUCIONES (muy distintivo)
+    # -------------------------------------------------
+
+    if re.search(r'\b(resolucion|resuelv|rex|acto administrativo)\b', preg):
         return "resolucion"
 
-    if any(x in preg for x in [
-        "objetivo","finalidad","proposito",
-        "para que","que busca","que pretende"
-    ]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 2: OBJETIVO
+    # -------------------------------------------------
+
+    if re.search(
+        r'\b(objetivo|finalidad|proposito|para que|que busca|que pretende)\b',
+        preg
+    ):
         return "objetivo"
 
-    if any(x in preg for x in [
-        "requisito",
-        "que se necesita",
-        "condiciones para postular"
-    ]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 3: REQUISITOS
+    # -------------------------------------------------
+
+    if re.search(
+        r'\b(requisito(s)?|condiciones|que se necesita|que debo|que debo cumplir)\b',
+        preg
+    ):
         return "requisitos"
 
-    if any(x in preg for x in [
-        "postular",
-        "quien puede postular",
-        "beneficiarios"
-    ]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 4: POSTULACIÓN / BENEFICIARIOS
+    # -------------------------------------------------
+
+    if re.search(
+        r'\b(postular|postulacion|postulante(s)?|beneficiario(s)?|quien(es)? puede(n)? postular|quien(es)? puede(n)? participar)\b',
+        preg
+    ):
         return "postulacion"
 
-    if any(x in preg for x in [
-        "financiamiento",
-        "monto",
-        "cuanto financia"
-    ]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 5: FINANCIAMIENTO
+    # -------------------------------------------------
+
+    if re.search(
+        r'\b(financiamiento|financia|monto|recursos|cuanto financia|cuanto dinero)\b',
+        preg
+    ):
         return "financiamiento"
 
-    if any(x in preg for x in [
-        "evaluacion",
-        "criterios de evaluacion"
-    ]):
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 6: EVALUACIÓN
+    # -------------------------------------------------
+
+    if re.search(
+        r'\b(evaluacion|criterios de evaluacion|como se evalua)\b',
+        preg
+    ):
         return "evaluacion"
 
-    if "bases" in preg:
+    # -------------------------------------------------
+    # 🔥 PRIORIDAD 7: BASES
+    # -------------------------------------------------
+
+    if re.search(r'\bbases\b', preg):
         return "bases"
 
     return None
@@ -51,10 +76,14 @@ def detectar_intent(preg):
 
 def detectar_pregunta_beneficiarios(preg):
 
+    preg = normalizar(preg)
+
     patrones = [
         r'quien(es)? puede(n)? postular',
         r'quien(es)? puede(n)? participar',
-        r'quien(es)? son beneficiarios'
+        r'quien(es)? son beneficiarios',
+        r'a quien(es)? va dirigido',
+        r'quienes participan'
     ]
 
     for p in patrones:
