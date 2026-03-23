@@ -1,12 +1,12 @@
 # backend/services/consulta/structured_extractors.py
 
 import re
-from services.consulta.patterns import (
+from backend.services.consulta.patterns import (
     PATRON_RESOLUCION,
     PATRON_RES_ABREV
 )
-from utils.extractores import extraer_numero_resolucion
-from utils.extractores_fecha import extraer_fecha_resolucion
+from backend.utils.extractores import extraer_numero_resolucion
+from backend.utils.extractores_fecha import extraer_fecha_resolucion
 
 def normalizar_contexto(contexto):
 
