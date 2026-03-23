@@ -20,7 +20,7 @@ def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
         return None
 
     if isinstance(resultado, str):
-        return resultado
+        resultado = [resultado]
 
     textos = []
     vistos = set()
