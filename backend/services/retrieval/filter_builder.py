@@ -1,6 +1,6 @@
 # filter_builder.py
 import re
-from backend.services.retrieval_text_utils import tokens, normalizar
+from backend.services.retrieval_text_utils import tokens, normalizar, safe_split
 from backend.services.retrieval.doc_utils import normalizar_nombre_doc
 
 
@@ -98,6 +98,20 @@ def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
             {"contenido_norm": {"$regex": "postul", "$options": "i"}},
         ])
 
+    if "monto" in pregunta_norm or "financiamiento" in pregunta_norm:
+        condiciones_or.extend([
+            {"metadata.tipo_chunk": "financiamiento"},
+            {"contenido_norm": {"$regex": "monto", "$options": "i"}},
+            {"contenido_norm": {"$regex": "financiamiento", "$options": "i"}},
+        ])
+
+    if "duracion" in pregunta_norm or "meses" in pregunta_norm:
+        condiciones_or.extend([
+            {"metadata.tipo_chunk": "duracion"},
+            {"contenido_norm": {"$regex": "duracion", "$options": "i"}},
+            {"contenido_norm": {"$regex": "meses", "$options": "i"}},
+        ])
+
     # ==================================================
     # 🔥 4️⃣ FRASES EXACTAS (FUERTE)
     # ==================================================
@@ -107,7 +121,7 @@ def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
     for f in frases:
         f = f.strip()
         if len(f) > 3:
-            fuzzy = ".*".join(map(re.escape, f.split()))
+            fuzzy = ".*".join(map(re.escape, safe_split(f)))
             condiciones_or.append({
                 "contenido_norm": {
                     "$regex": fuzzy,
@@ -142,20 +156,26 @@ def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
     # 🔥 6️⃣ CONSTRUCCIÓN FINAL (CLAVE)
     # ==================================================
 
-    bloques = []
+    # Caso 1: documento + condiciones semánticas
+    if filtro_doc and condiciones_or:
+        return {
+            "$and": [
+                filtro_doc,
+                {"$or": condiciones_or}
+            ]
+        }
 
+    # Caso 2: solo documento
     if filtro_doc:
-        bloques.append(filtro_doc)
+        return filtro_doc
 
+    # Caso 3: solo condiciones semánticas
     if condiciones_or:
-        bloques.append({"$or": condiciones_or})
+        return {"$or": condiciones_or}
 
-    # 🔥 TOKENS COMO BOOST (NO FILTRO DURO)
+    # Caso 4: solo tokens (fallback)
     if condiciones_tokens:
-        bloques.append({"$or": condiciones_tokens})
-
-    if bloques:
-        return {"$and": bloques}
+        return {"$or": condiciones_tokens}
 
     return {}
 
