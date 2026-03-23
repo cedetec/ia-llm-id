@@ -2,8 +2,8 @@
 
 import re
 import hashlib
-from services.normalizador_pdf_juridico import normalizar_texto_juridico
-from services.retrieval_text_utils import normalizar
+from backend.services.normalizador_pdf_juridico import normalizar_texto_juridico
+from backend.services.retrieval_text_utils import normalizar
 
 
 # ==========================================
