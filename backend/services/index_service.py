@@ -9,7 +9,7 @@ from backend.services.indexing.embedding_pipeline import generar_embedding
 from backend.services.indexing.mongo_upsert import upsert_chunk
 from backend.services.indexing.config import MIN_CHUNK_LENGTH
 
-from backend.services.retrieval_text_utils import normalizar
+from backend.services.retrieval_text_utils import normalizar, safe_split
 from backend.services.chunking_juridico import detectar_tipo_chunk
 
 import re
@@ -17,7 +17,7 @@ import re
 def limpiar_texto_ocr(texto: str) -> str:
     t = texto.lower()
 
-    palabras = t.split()
+    palabras = safe_split(t)
     if not palabras:
         return ""
 
@@ -191,7 +191,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         texto_filtrado = limpiar_texto_ocr(texto_chunk)
 
         if documento_norm == "09-22-res-bases-apoyo-basal-2022.pdf":
-            print(f"DEBUG LEN: {len(texto_filtrado.split())} → {texto_filtrado[:120]}")
+            print(f"DEBUG LEN: {len(safe_split(texto_filtrado))} → {texto_filtrado[:120]}")
 
         # 🔥 SI OCR FALLA → USAR TEXTO ORIGINAL LIMPIO (fallback)
         if not texto_filtrado:
@@ -200,7 +200,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
         MIN_WORDS = 8
 
-        if len(texto_filtrado.split()) < MIN_WORDS:
+        if len(safe_split(texto_filtrado)) < MIN_WORDS:
 
             # 🚨 permitir al menos algunos chunks si el documento está vacío
             if doc_inserted_count[doc_key] == 0:
@@ -214,6 +214,12 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
         if not contenido_norm:
             continue
+
+        # 🔥 boost secciones importantes
+        if len(safe_split(contenido_norm)) > 220:
+            palabras = safe_split(texto_filtrado)
+            texto_filtrado = " ".join(palabras[:220])
+            contenido_norm = normalizar(texto_filtrado)
 
         # -------------------------
         # HASH
@@ -238,17 +244,29 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         # 🔥 fallback si clasificador falla
         if tipo_chunk == "general":
 
-            if re.search(r'\bobjetivo(s)?\b', cont_l):
+            if re.search(r'\b(objetivo|finalidad|proposito)\b', cont_l):
                 tipo_chunk = "objetivo"
 
-            elif re.search(r'\brequisito(s)?\b', cont_l):
+            elif re.search(r'\b(requisito|condiciones)\b', cont_l):
                 tipo_chunk = "requisito"
 
             elif re.search(r'\b(postul|beneficiario)\b', cont_l):
                 tipo_chunk = "beneficiarios"
 
+            elif re.search(r'\b(financiamiento|monto|recursos)\b', cont_l):
+                tipo_chunk = "financiamiento"
+
+            elif re.search(r'\b(duracion|plazo|vigencia)\b', cont_l):
+                tipo_chunk = "duracion"
+
+            elif re.search(r'\b(evaluacion|criterios)\b', cont_l):
+                tipo_chunk = "evaluacion"
+
             elif re.search(r'\b(resuelv|aprueb|resolucion)\b', cont_l):
                 tipo_chunk = "resolucion"
+
+            elif re.search(r'\b(considerando|visto)\b', cont_l):
+                tipo_chunk = "considerando"
 
         # -------------------------
         # SECCIÓN (derivada simple)
@@ -310,7 +328,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
             "seccion": seccion,
             "articulo": articulo,
             "chunk_index": i,
-            "longitud": len(texto_chunk.split()),
+            "longitud": len(safe_split(texto_chunk)),
             "char_length": len(texto_chunk),
             "hash": content_hash,
             "es_resolutivo": tipo_chunk == "resolucion",
@@ -356,6 +374,8 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
             elif res.modified_count > 0:
                 updated += 1
                 doc_inserted_count[doc_key] += 1
+
+            
 
         except Exception as e:
             print("❌ Error Mongo:", e)
