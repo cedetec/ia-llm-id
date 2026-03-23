@@ -1,19 +1,19 @@
 # backend/services/consulta_filtros.py
 from __future__ import annotations
 import re
-from backend.services.consulta_utils_text import normalizar_txt
+from backend.services.retrieval_text_utils import normalizar
 
 def contiene_palabras_clave(texto: str, claves: list[str], *, min_hits: int | None = None) -> bool:
     if not texto:
         return False
 
-    t = normalizar_txt(texto).lower()
+    t = normalizar(texto)
 
     ks = []
     for c in (claves or []):
         if not c:
             continue
-        c_norm = normalizar_txt(c).lower()
+        c_norm = normalizar(c)
         if c_norm:
             ks.append(c_norm)
 
@@ -33,7 +33,7 @@ def contiene_palabras_clave(texto: str, claves: list[str], *, min_hits: int | No
     return False
 
 def claves_concurso(nombre: str) -> list[str]:
-    n = normalizar_txt(nombre).lower()
+    n = normalizar(nombre)
 
     toks = [t for t in re.split(r"[^a-záéíóúñ0-9]+", n) if t]
 
