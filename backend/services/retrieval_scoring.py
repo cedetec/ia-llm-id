@@ -213,17 +213,21 @@ def score_chunk(
 
         if seccion_objetivo:
 
-            if seccion_objetivo == "objetivo" and "objetivo" not in c_low:
-                return 0.0
+            if seccion_objetivo == "objetivo":
+                if not any(x in c_low for x in ["objetivo", "finalidad", "proposito"]):
+                    penalty -= 8
 
-            elif seccion_objetivo == "requisito" and "requisito" not in c_low:
-                return 0.0
+            elif seccion_objetivo == "requisito":
+                if not any(x in c_low for x in ["requisito", "deben", "postular"]):
+                    penalty -= 8
 
-            elif seccion_objetivo == "beneficiarios" and not any(x in c_low for x in ["beneficiario", "postular"]):
-                return 0.0
+            elif seccion_objetivo == "beneficiarios":
+                if not any(x in c_low for x in ["beneficiario", "postular"]):
+                    penalty -= 8
 
-            elif seccion_objetivo == "resolucion" and not any(x in c_low for x in ["resolucion", "resuelv", "aprueb"]):
-                return 0.0
+            elif seccion_objetivo == "resolucion":
+                if not any(x in c_low for x in ["resolucion", "resuelv", "aprueb"]):
+                    penalty -= 8
 
         if not isinstance(tokens, (list, tuple, set)):
             tokens = []
@@ -301,6 +305,12 @@ def score_chunk(
         if "fondecyt" in c_low:
             bonus += 6
 
+        # ---------------------------------
+        # 🔥 BOOST DOCUMENTO / PDF
+        # ---------------------------------
+        if "pdf" in c_low:
+            bonus += 2
+
         # NUEVO
         if re.search(r'i\s*\+\s*d', c_low):
             bonus += 6
@@ -310,6 +320,18 @@ def score_chunk(
 
         if re.search(r'\b\d{1,2}/\d{1,2}/\d{4}\b', c_low):
             bonus += 6
+
+        # ---------------------------------
+        # 🔥 BOOST NÚMEROS LEGALES
+        # ---------------------------------
+        if re.search(r'\bresolucion\s+\d+', c_low):
+            bonus += 6
+
+        if re.search(r'\bart[ií]culo\s+\d+', c_low):
+            bonus += 6
+
+        if re.search(r'\b\d{4}\b', c_low):
+            bonus += 2
 
         # =====================================================
         # 🔥 BOOST POR INTENCIÓN (CLAVE FINAL)
@@ -409,6 +431,16 @@ def score_chunk(
             # 🔥 basura administrativa frecuente (tu bug principal)
             if "ejemplar de las bases" in c_low:
                 penalty -= 12
+
+            # ---------------------------------
+            # 🔥 PENALIZAR CHUNKS MUY LARGOS
+            # ---------------------------------
+            words_len = len(safe_split(c_low))
+
+            if words_len > 250:
+                penalty -= 8
+            elif words_len > 180:
+                penalty -= 4
 
         # =====================================================
         # SCORE FINAL
