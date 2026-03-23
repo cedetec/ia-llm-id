@@ -1,36 +1,61 @@
-#ranking_pipeline.py
+# ranking_pipeline.py
 import re
 
 from backend.services.embedding_service import embed_text
 from backend.services.retrieval_scoring import score_chunk
 from backend.services.rerank_legal import rerank_legal_chunks
 
-from backend.services.ranking_utils import (
-    cosine,
-    normalizar_txt,
-)
+from backend.services.ranking_utils import cosine
+from backend.services.retrieval_text_utils import normalizar
 
 from backend.services.ranking_intent import (
     detectar_intent,
     detectar_pregunta_beneficiarios
 )
 
-from backend.services.ranking_boosts import (
-    boost_frase,
-    boost_posicion,
-    penalizar_repeticion
-)
-
-from backend.services.ranking_heuristicas_legales import heuristicas_juridicas
-from backend.services.ranking_filters import es_texto_administrativo
+from backend.services.retrieval.intent_utils import detectar_seccion_simple
 from backend.services.retrieval.ranking_boosts_anid import aplicar_boosts_anid
 
 
+# ==========================================
+# 🔥 CONFIG
+# ==========================================
+
+RUIS_LEGAL = [
+    "recurso de reposicion",
+    "plazo para interponer",
+    "dias habiles",
+    "carta certificada",
+    "notificacion",
+    "seran notificados",
+    "sin perjuicio",
+    "de conformidad con",
+    "facultades que detenta",
+    "adjunto al acto administrativo",
+]
+
+RUIDO_TECNICO = [
+    "tabla", "figura", "ranking", "editorial", "scopus"
+]
+
+
+# ==========================================
+# 🔥 FUNCIÓN PRINCIPAL
+# ==========================================
+
 def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
-    preg_l = normalizar_txt(pregunta)
+    preg_l = normalizar(pregunta)
 
     intent = detectar_intent(preg_l)
+    seccion_detectada = detectar_seccion_simple(pregunta)
+
+    if seccion_detectada:
+        intent = seccion_detectada  # 🔥 manda la sección
+
+    # ----------------------------------
+    # 🔥 EMBEDDING
+    # ----------------------------------
 
     try:
         q_emb = embed_text(pregunta)
@@ -39,25 +64,42 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
     ranked = []
 
+    # ==========================================
+    # 🔥 LOOP PRINCIPAL
+    # ==========================================
+
     for d in docs:
 
         cont = str(d.get("contenido") or "")
-        meta = d.get("metadata") or {}
-
         if not cont:
             continue
 
         cont_l = d.get("contenido_norm", "")
-        titulo = normalizar_txt(meta.get("titulo", ""))
-
-        tipo = meta.get("tipo_chunk", "")
-        idx = meta.get("chunk_index", 999)
+        meta = d.get("metadata") or {}
 
         # ----------------------------------
-        # 🔥 FASE 1: SCORE BASE
+        # ❌ FILTRO DURO (CRÍTICO)
         # ----------------------------------
 
-        score_lex = float(score_chunk(cont, toks, modo_cita=modo_cita))
+        if any(x in cont_l for x in RUIS_LEGAL):
+            continue
+
+        if any(x in cont_l for x in RUIDO_TECNICO):
+            continue
+
+        if len(cont_l) < 40:
+            continue
+
+        # ----------------------------------
+        # 🔥 SCORE BASE
+        # ----------------------------------
+
+        score_lex = float(score_chunk(
+            cont,
+            toks,
+            modo_cita=modo_cita,
+            seccion_objetivo=intent
+        ))
 
         score_sem = 0.0
         emb = d.get("embedding")
@@ -66,145 +108,202 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             try:
                 score_sem = cosine(q_emb, emb)
             except:
-                score_sem = 0.0
+                pass
 
-        total = (score_lex * 2.0) + (score_sem * 8.0)
+        # 🔥 IMPORTANTE: bajar peso semántico
+        total = (score_lex * 4.0) + (score_sem * 3.0)
 
         # ----------------------------------
-        # 🔥 FASE 2: POSICIÓN Y LONGITUD
+        # 🔥 MATCH DIRECTO (CLAVE)
         # ----------------------------------
+
+        match_count = sum(1 for t in toks if t in cont_l)
+
+        if match_count >= 4:
+            total += 30
+        elif match_count == 3:
+            total += 18
+        elif match_count == 2:
+            total += 8
+
+        # ----------------------------------
+        # 🔥 TIPO DE CHUNK
+        # ----------------------------------
+
+        tipo = meta.get("tipo_chunk", "")
+
+        if tipo == "articulo_resolucion":
+            total += 18
+        elif tipo == "resolucion":
+            total += 14
+        elif tipo == "objetivo":
+            total += 20
+        elif tipo == "requisito":
+            total += 18
+        elif tipo == "considerando":
+            total += 2
+        elif tipo == "bases_concurso":
+            total -= 8
+        elif tipo == "postulacion":
+            total += 15
+        elif tipo == "general":
+            total -= 25
+
+        # ----------------------------------
+        # 🔥 INTENT BOOST (NO DESTRUCTIVO)
+        # ----------------------------------
+
+        if intent == "objetivo":
+            if any(x in cont_l for x in [
+                "objetivo del concurso",
+                "objetivo general",
+                "tiene por objetivo",
+                "finalidad"
+            ]):
+                total += 50
+
+        elif intent == "requisito":
+            if any(x in cont_l for x in [
+                "requisitos",
+                "deben",
+                "deberan",
+                "postular"
+            ]):
+                total += 35
+
+        elif intent == "beneficiarios":
+            if any(x in cont_l for x in [
+                "beneficiario",
+                "postulante",
+                "persona natural"
+            ]):
+                total += 25
+
+        elif intent == "resolucion":
+            if any(x in cont_l for x in [
+                "resuelv",
+                "aprueb",
+                "resolucion"
+            ]):
+                total += 30
+
+        # ❗ IMPORTANTE: NO castigar fuerte mismatch
+
+        # ----------------------------------
+        # 🔥 SECCIÓN MATCH (CLAVE)
+        # ----------------------------------
+
+        seccion = normalizar(meta.get("seccion", ""))
+
+        if intent and seccion == intent:
+            total += 60
+        elif intent and intent in seccion:
+            total += 20
+
+        # ----------------------------------
+        # 🔥 POSICIÓN
+        # ----------------------------------
+
+        idx = meta.get("chunk_index", 999)
 
         if idx < 5:
-            total += 5
-        elif idx < 10:
+            total += 6
+        elif idx < 15:
             total += 3
-        elif idx > 50:
-            total -= 2
+
+        # ----------------------------------
+        # 🔥 LONGITUD IDEAL
+        # ----------------------------------
 
         length = len(cont.split())
 
-        if 80 <= length <= 250:
-            total += 3
-        elif length < 40:
-            total -= 3
-
-        # ----------------------------------
-        # 🔥 FASE 3: TIPO DE CHUNK
-        # ----------------------------------
-
-        if tipo == "articulo_resolucion":
-            total += 12
-        elif tipo == "resolucion":
-            total += 10
-        elif tipo == "considerando":
+        if 80 <= length <= 220:
             total += 4
-        elif tipo == "bases_concurso":
-            total += 6
+        elif length < 30:
+            total -= 5
 
         # ----------------------------------
-        # 🔥 FASE 4: INTENCIÓN (CLAVE)
+        # 🔥 SEÑALES LEGALES
         # ----------------------------------
-
-        if intent == "resolucion":
-            if tipo in ["resolucion", "articulo_resolucion"]:
-                total += 25
-            if "resuelv" in cont_l:
-                total += 20
-
-        elif intent == "objetivo":
-            if "objetivo del concurso" in cont_l:
-                total += 30
-            elif "objetivo" in cont_l:
-                total += 15
-
-        elif intent == "requisito":
-            if any(x in cont_l for x in ["deben", "requisito", "postular"]):
-                total += 20
-
-        elif intent == "beneficiarios":
-            if any(x in cont_l for x in ["beneficiario", "postulante", "persona natural"]):
-                total += 18
-
-        # ----------------------------------
-        # 🔥 FASE 5: SEÑALES LEGALES FUERTES
-        # ----------------------------------
-
-        if "aprueb" in cont_l:
-            total += 15
 
         if "resuelv" in cont_l:
-            total += 18
+            total += 12
 
-        if re.search(r'\bart[ií]culo\s+\d+', cont_l):
+        if "resolucion exenta" in cont_l:
             total += 10
 
-        # ----------------------------------
-        # 🔥 FASE 6: PENALIZACIONES
-        # ----------------------------------
-
-        if len(cont_l) > 2000:
-            total -= 6
-
-        if re.search(r'(tabla|figura|ranking|editorial|impacto|scopus)', cont_l):
-            total -= 20
-
-        if sum(c.isdigit() for c in cont_l) > 80:
-            total -= 6
-
-        if "no se aprueb" in cont_l:
-            total -= 10
+        if re.search(r'\bart[ií]culo\s+\d+', cont_l):
+            total += 8
 
         # ----------------------------------
-        # 🔥 FASE 7: BOOSTS ANID
+        # 🔥 PENALIZACIONES SUAVES
         # ----------------------------------
 
-        seccion = meta.get("seccion", "")
-        inicio = cont[:300].lower()
-        preg_benef = detectar_pregunta_beneficiarios(preg_l)
+        if "modificacion de convenio" in cont_l:
+            total -= 8
+
+        if sum(c.isdigit() for c in cont_l) > 100:
+            total -= 5
+
+        # ----------------------------------
+        # 🔥 BOOST ANID
+        # ----------------------------------
 
         boost_anid = aplicar_boosts_anid(
             0,
             cont_l,
-            inicio,
-            seccion,
+            cont_l[:300],
+            meta.get("seccion", ""),
             intent,
-            preg_benef
+            detectar_pregunta_beneficiarios(preg_l)
         )
 
         total += boost_anid * 0.3
 
         # ----------------------------------
-        # 🔥 SCORE FINAL
+        # 🔥 MODO CITA
+        # ----------------------------------
+
+        if modo_cita:
+            if re.search(r'\b(resolucion|apruebase|resuelvo|objetivo)\b', cont_l):
+                total += 12
+
+            if len(cont.split()) < 6:
+                total -= 5
+
+        # ----------------------------------
+        # 🔥 FINAL
         # ----------------------------------
 
         d["score"] = float(max(total, 0))
         ranked.append(d)
 
-    # ----------------------------------
-    # ORDENAR
-    # ----------------------------------
+    # ==========================================
+    # 🔥 DEDUPLICACIÓN
+    # ==========================================
 
-    # 🔥 penalizar duplicados semánticos
-    seen_texts = set()
+    seen = set()
     filtered = []
 
     for d in ranked:
-        txt = d.get("contenido_norm", "")[:200]
+        key = d.get("contenido_norm", "")[:400]
 
-        if txt in seen_texts:
+        if key in seen:
             continue
 
-        seen_texts.add(txt)
+        seen.add(key)
         filtered.append(d)
 
-    ranked = filtered
-
-    ranked.sort(key=lambda x: x["score"], reverse=True)
-
     # ----------------------------------
-    # RE-RANKING FINAL (legal)
+    # 🔥 ORDEN
     # ----------------------------------
 
-    ranked = rerank_legal_chunks(pregunta, ranked)
+    filtered.sort(key=lambda x: x["score"], reverse=True)
 
-    return ranked[:15]
+    # ----------------------------------
+    # 🔥 RE-RANK FINAL
+    # ----------------------------------
+
+    final = rerank_legal_chunks(pregunta, filtered)
+
+    return final[:15]
