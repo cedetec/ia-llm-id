@@ -176,9 +176,10 @@ def score_chunk(
     contenido: str,
     tokens: List[str],
     *,
-    modo_cita: bool
+    modo_cita: bool,
+    seccion_objetivo: str | None = None   # 🔥 NUEVO
 ) -> float:
-
+    
     if not contenido:
         return 0.0
 
@@ -205,6 +206,24 @@ def score_chunk(
 
         c_low = c_low.replace("res.", "resolucion")
         c_low = c_low.replace("rex", "resolucion")
+
+        # --------------------------------------------------
+        # 🔥 FILTRO POR SECCIÓN (CRÍTICO)
+        # --------------------------------------------------
+
+        if seccion_objetivo:
+
+            if seccion_objetivo == "objetivo" and "objetivo" not in c_low:
+                return 0.0
+
+            elif seccion_objetivo == "requisito" and "requisito" not in c_low:
+                return 0.0
+
+            elif seccion_objetivo == "beneficiarios" and not any(x in c_low for x in ["beneficiario", "postular"]):
+                return 0.0
+
+            elif seccion_objetivo == "resolucion" and not any(x in c_low for x in ["resolucion", "resuelv", "aprueb"]):
+                return 0.0
 
         if not isinstance(tokens, (list, tuple, set)):
             tokens = []
@@ -244,6 +263,14 @@ def score_chunk(
         # =====================================================
         # BOOSTS CONTEXTUALES
         # =====================================================
+
+        if any(x in c_low for x in [
+            "recurso de reposicion",
+            "plazo para interponer",
+            "notificado",
+            "carta certificada"
+        ]):
+            penalty -= 15
 
         # estructura típica de bases
         if re.search(r'\b1\.\d?\s+objetivo', c_low):
@@ -285,6 +312,78 @@ def score_chunk(
             bonus += 6
 
         # =====================================================
+        # 🔥 BOOST POR INTENCIÓN (CLAVE FINAL)
+        # =====================================================
+
+        if seccion_objetivo:
+
+            # -------------------------
+            # OBJETIVO
+            # -------------------------
+            if seccion_objetivo == "objetivo":
+
+                if "objetivo" in c_low:
+                    bonus += 12
+
+                if "objetivo del concurso" in c_low:
+                    bonus += 15
+
+                if "objetivo general" in c_low:
+                    bonus += 12
+
+                # 🔥 penalizar ruido típico
+                if "ejemplar de las bases" in c_low:
+                    penalty -= 10
+
+
+            # -------------------------
+            # REQUISITOS
+            # -------------------------
+            elif seccion_objetivo == "requisito":
+
+                if "requisito" in c_low:
+                    bonus += 12
+
+                if "requisitos de postulacion" in c_low:
+                    bonus += 15
+
+                if "deben postular" in c_low:
+                    bonus += 10
+
+
+            # -------------------------
+            # BENEFICIARIOS
+            # -------------------------
+            elif seccion_objetivo == "beneficiarios":
+
+                if "podran postular" in c_low:
+                    bonus += 12
+
+                if "pueden postular" in c_low:
+                    bonus += 12
+
+                if "quienes pueden postular" in c_low:
+                    bonus += 15
+
+                if "beneficiarios" in c_low:
+                    bonus += 10
+
+
+            # -------------------------
+            # RESOLUCIÓN
+            # -------------------------
+            elif seccion_objetivo == "resolucion":
+
+                if "resolucion" in c_low:
+                    bonus += 10
+
+                if "resuelvo" in c_low:
+                    bonus += 12
+
+                if "apruebase" in c_low or "aprueba" in c_low:
+                    bonus += 15
+
+        # =====================================================
         # PENALIZACIONES
         # =====================================================
 
@@ -307,6 +406,9 @@ def score_chunk(
             if words > 200:
                 penalty -= 10
 
+            # 🔥 basura administrativa frecuente (tu bug principal)
+            if "ejemplar de las bases" in c_low:
+                penalty -= 12
 
         # =====================================================
         # SCORE FINAL
