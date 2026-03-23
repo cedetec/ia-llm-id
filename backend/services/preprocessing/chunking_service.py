@@ -1,6 +1,7 @@
 # chunking_service.py
 import re
 from backend.services.preprocessing.config import FALLBACK_CHUNK_SIZE
+from backend.services.retrieval_text_utils import safe_split
 
 
 # ------------------------------------------------
@@ -8,18 +9,20 @@ from backend.services.preprocessing.config import FALLBACK_CHUNK_SIZE
 # ------------------------------------------------
 
 PATRON_NUMERAL = re.compile(
-r'\n\s*(?:\d{1,2}|[IVX]+)\s*(?:\.|\-)?\s*'
-r'(OBJETIVO|FINALIDAD|PROPOSITO|'
-r'REQUISITOS?|REQUISITOS\s+DE\s+POSTULACION|'
-r'QUIENES\s+PUEDEN\s+POSTULAR|'
-r'POSTULACION|POSTULANTES?|'
-r'EVALUACION|EVALUACION\s+DE\s+PROYECTOS|'
-r'FINANCIAMIENTO|'
-r'BENEFICIARIOS|'
-r'PLAZOS?|'
-r'ADJUDICACION|'
-r'FORMALIZACION)',
-re.IGNORECASE
+    r'\n\s*(?:[1-9]|[1-9][0-9])\.\s+'
+    r'(OBJETIVO|FINALIDAD|PROPOSITO|'
+    r'REQUISITOS?|'
+    r'QUIENES\s+PUEDEN\s+POSTULAR|'
+    r'POSTULACION|POSTULANTES?|'
+    r'EVALUACION|'
+    r'FINANCIAMIENTO|'
+    r'BENEFICIARIOS|'
+    r'PLAZOS?|'
+    r'ADJUDICACION|'
+    r'FORMALIZACION|'
+    r'DEFINICIONES|'
+    r'DURACION)',
+    re.IGNORECASE
 )
 
 PATRON_RESOLUCION = re.compile(
@@ -44,6 +47,13 @@ def limpiar_ocr(texto: str) -> str:
     texto = re.sub(r'\s+\n', '\n', texto)
 
     texto = re.sub(r'\n{2,}', '\n', texto)
+
+    # fixes OCR
+    texto = re.sub(r'c0n1cyt', 'conicyt', texto, flags=re.I)
+    texto = re.sub(r'inves[t1]igac[i1]on', 'investigacion', texto, flags=re.I)
+    texto = re.sub(r'res0luc[i1]on', 'resolucion', texto, flags=re.I)
+    texto = re.sub(r'exent[ao]', 'exenta', texto, flags=re.I)
+    texto = re.sub(r'f0ndecyt', 'fondecyt', texto, flags=re.I)
 
     # reparar palabras cortadas por OCR
     texto = re.sub(r'POS-\s*TUL', 'POSTUL', texto, flags=re.I)
@@ -98,11 +108,14 @@ def subdividir_bloque(texto, max_chars=900):
         return [texto]
 
     OVERLAP = 120
+    MAX_PARTES = 5   # 🔥 límite muy importante
 
     partes = []
+    i = 0
 
-    for i in range(0, len(texto), max_chars - OVERLAP):
+    while i < len(texto) and len(partes) < MAX_PARTES:
         partes.append(texto[i:i + max_chars].strip())
+        i += max_chars - OVERLAP
 
     return partes
 
@@ -116,8 +129,12 @@ def merge_chunks(chunks):
     buffer = ""
 
     MAX_CHARS = 2200
+    MAX_CHUNKS = 120   # 🔥 límite global
 
     for chunk in chunks:
+
+        if len(merged_chunks) >= MAX_CHUNKS:
+            break
 
         if len(chunk) < 200:
             buffer += " " + chunk
@@ -134,12 +151,12 @@ def merge_chunks(chunks):
                 for i in range(0, len(chunk), MAX_CHARS)
             ]
 
-            merged_chunks.extend(partes)
+            merged_chunks.extend(partes[:3])  # 🔥 limitar divisiones
 
         else:
             merged_chunks.append(chunk)
 
-    return merged_chunks
+    return merged_chunks[:MAX_CHUNKS]
 
 # ------------------------------------------------
 # CHUNKING PRINCIPAL
@@ -164,8 +181,15 @@ def chunkear(texto: str) -> list[str]:
     if len(matches_res) >= 2:
 
         chunks = []
+        MAX_BLOQUES = 30
 
         for i, m in enumerate(matches_res):
+
+            if len(chunks) >= 120:
+                break
+
+            if i >= MAX_BLOQUES:
+                break
 
             start = m.start()
 
@@ -181,6 +205,10 @@ def chunkear(texto: str) -> list[str]:
 
             partes = subdividir_bloque(bloque)
 
+            # 🔥 limitar subchunks por bloque
+            if len(partes) > 2:
+                partes = partes[:2]
+
             chunks.extend(partes)
 
         if chunks:
@@ -195,8 +223,15 @@ def chunkear(texto: str) -> list[str]:
     if len(matches) >= 2:
 
         chunks = []
+        MAX_BLOQUES = 30
 
         for i, m in enumerate(matches):
+
+            if len(chunks) >= 140:
+                break
+
+            if i >= MAX_BLOQUES:
+                break
 
             start = m.start()
 
@@ -212,9 +247,54 @@ def chunkear(texto: str) -> list[str]:
 
             partes = subdividir_bloque(bloque)
 
+            # 🔥 limitar subchunks
+            if len(partes) > 2:
+                partes = partes[:2]
+
             chunks.extend(partes)
 
         return merge_chunks(chunks)
+
+    # ------------------------------------------------
+    # CHUNKING POR NUMERALES SIMPLES (1., 2., 3., ...)
+    # ------------------------------------------------
+
+    matches_simple = list(re.finditer(r'\n\s*\d{1,2}\.\s+', texto))
+
+    if len(matches_simple) >= 3:
+
+        chunks = []
+        MAX_BLOQUES = 40
+
+        for i, m in enumerate(matches_simple):
+
+            if len(chunks) >= 140:
+                break
+
+            if i >= MAX_BLOQUES:
+                break
+
+            start = m.start()
+
+            if i + 1 < len(matches_simple):
+                end = matches_simple[i + 1].start()
+            else:
+                end = len(texto)
+
+            bloque = texto[start:end].strip()
+
+            if len(bloque) < 300:
+                continue
+
+            partes = subdividir_bloque(bloque)
+
+            if len(partes) > 2:
+                partes = partes[:2]
+
+            chunks.extend(partes)
+
+        if chunks:
+            return merge_chunks(chunks)
 
     # ------------------------------------------------
     # FALLBACK CHUNKING
@@ -227,14 +307,19 @@ def chunkear(texto: str) -> list[str]:
 
     chunks = []
 
+    MAX_CHUNKS = 80
+
     for i in range(0, len(texto), step):
+
+        if len(chunks) >= MAX_CHUNKS:
+            break
 
         chunk = texto[i:i + CHUNK_SIZE].strip()
 
         if len(chunk) < 350:
             continue
 
-        if len(chunk.split()) < 60:
+        if len(safe_split(chunk)) < 60:
             continue
 
         if len(chunk) > 2200:
