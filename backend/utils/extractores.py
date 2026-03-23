@@ -1,36 +1,29 @@
 import re
+from backend.services.retrieval_text_utils import safe_split
 
-PATRON_RESOLUCION = re.compile(
-    r'(?:resolucion\s*(?:exent[ao])?\s*(?:n[°ºo\.:\-]*)?\s*)'
-    r'(\d{1,6}\s*[/\-.]\s*\d{2,4})',
-    re.IGNORECASE
-)
+def extraer_numero_resolucion(contexto):
 
-def extraer_numero_resolucion(texto):
+    if isinstance(contexto, dict):
+        contexto = contexto.get("contenido") or contexto.get("texto") or ""
+    elif isinstance(contexto, list):
+        contexto = " ".join(
+            x.get("contenido", "") if isinstance(x, dict) else str(x)
+            for x in contexto
+        )
+    elif not isinstance(contexto, str):
+        contexto = str(contexto or "")
 
-    # 🔥 NORMALIZACIÓN ROBUSTA
-    if isinstance(texto, list):
-        partes = []
-        for t in texto:
-            if isinstance(t, dict):
-                val = t.get("contenido") or t.get("texto")
-                if isinstance(val, str):
-                    partes.append(val)
-            elif isinstance(t, str):
-                partes.append(t)
-        texto = " ".join(partes)
+    texto = contexto.lower()
 
-    elif isinstance(texto, dict):
-        texto = texto.get("contenido") or texto.get("texto") or ""
+    patrones = [
+        r'resolucion\s*(exenta|exento)?\s*(n[°ºo]|nº|n°|numero)?\s*\d{1,5}',
+        r'\bn[°ºo]?\s*\d{1,5}[/\-]\d{2,4}',
+        r'\bresolucion\s*n\s*\d{1,5}'
+    ]
 
-    if not isinstance(texto, str) or not texto.strip():
-        return None
-
-    # 🔧 FIX OCR
-    texto = texto.replace("l", "1")
-
-    m = PATRON_RESOLUCION.search(texto)
-    if m:
-        return m.group(1).strip()
+    for p in patrones:
+        m = re.search(p, texto, re.I)
+        if m:
+            return m.group(0)
 
     return None
