@@ -15,6 +15,7 @@ from backend.services.ranking_intent import (
 
 from backend.services.retrieval.intent_utils import detectar_seccion_simple
 from backend.services.retrieval.ranking_boosts_anid import aplicar_boosts_anid
+from backend.services.retrieval_text_utils import safe_split
 
 
 # ==========================================
@@ -70,7 +71,25 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
     for d in docs:
 
-        cont = str(d.get("contenido") or "")
+        cont = (
+            d.get("contenido")
+            or d.get("contenido_norm")
+            or d.get("texto")
+            or ""
+        )
+
+        if isinstance(cont, dict):
+            cont = cont.get("contenido") or cont.get("texto") or ""
+
+        elif isinstance(cont, list):
+            cont = " ".join(
+                x.get("contenido", "") if isinstance(x, dict) else str(x)
+                for x in cont
+            )
+
+        elif not isinstance(cont, str):
+            cont = str(cont)
+
         if not cont:
             continue
 
@@ -111,7 +130,22 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
                 pass
 
         # 🔥 IMPORTANTE: bajar peso semántico
-        total = (score_lex * 4.0) + (score_sem * 3.0)
+        total = (score_lex * 5.0) + (score_sem * 2.0)
+
+        # =====================================
+        # 🔥 BOOST POR NOMBRE DE DOCUMENTO
+        # =====================================
+        doc_name = meta.get("documento_norm", "")
+        if doc_name and doc_name in preg_l:
+            total += 20
+
+        # =====================================
+        # 🔥 BOOST FRASES EXACTAS
+        # =====================================
+        frases = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', preg_l)
+        for f in frases:
+            if f in cont_l:
+                total += 35
 
         # ----------------------------------
         # 🔥 MATCH DIRECTO (CLAVE)
@@ -147,7 +181,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         elif tipo == "postulacion":
             total += 15
         elif tipo == "general":
-            total -= 25
+            total -= 8
 
         # ----------------------------------
         # 🔥 INTENT BOOST (NO DESTRUCTIVO)
@@ -206,6 +240,13 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
         idx = meta.get("chunk_index", 999)
 
+        # =====================================
+        # 🔥 BOOST POR ARTÍCULO
+        # =====================================
+        articulo_meta = meta.get("articulo")
+        if articulo_meta and str(articulo_meta) in preg_l:
+            total += 25
+
         if idx < 5:
             total += 6
         elif idx < 15:
@@ -215,7 +256,17 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         # 🔥 LONGITUD IDEAL
         # ----------------------------------
 
-        length = len(cont.split())
+        length = len(safe_split(cont))
+
+        # =====================================
+        # 🔥 PENALIZAR CHUNKS MUY LARGOS
+        # =====================================
+        char_len = len(cont)
+
+        if char_len > 1500:
+            total -= 6
+        elif char_len > 900:
+            total -= 2
 
         if 80 <= length <= 220:
             total += 4
@@ -234,6 +285,11 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
         if re.search(r'\bart[ií]culo\s+\d+', cont_l):
             total += 8
+
+        # 🔥 boost si contiene números relevantes
+        if any(w in preg_l for w in ["numero", "fecha", "monto", "duracion", "ano"]):
+            if re.search(r'\d{2,}', cont_l):
+                total += 10
 
         # ----------------------------------
         # 🔥 PENALIZACIONES SUAVES
@@ -268,7 +324,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             if re.search(r'\b(resolucion|apruebase|resuelvo|objetivo)\b', cont_l):
                 total += 12
 
-            if len(cont.split()) < 6:
+            if len(safe_split(cont)) < 6:
                 total -= 5
 
         # ----------------------------------
@@ -286,7 +342,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
     filtered = []
 
     for d in ranked:
-        key = d.get("contenido_norm", "")[:400]
+        key = d.get("contenido_norm", "")[:200]
 
         if key in seen:
             continue
