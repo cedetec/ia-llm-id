@@ -6,6 +6,27 @@ from backend.services.retrieval_text_utils import safe_split
 
 import re
 
+def asegurar_string(x):
+    if isinstance(x, str):
+        return x
+
+    if isinstance(x, dict):
+        return x.get("contenido") or x.get("texto") or ""
+
+    if isinstance(x, list):
+        partes = []
+        for i in x:
+            if isinstance(i, dict):
+                partes.append(
+                    i.get("contenido")
+                    or i.get("texto")
+                    or ""
+                )
+            else:
+                partes.append(str(i))
+        return " ".join(partes)
+
+    return str(x or "")
 
 # =========================================================
 # NORMALIZACIÓN
@@ -39,24 +60,12 @@ def normalizar_texto(s):
 def manejar_cita(pregunta_low, contexto, pregunta):
 
     # -------------------------------------------------
-    # NORMALIZAR CONTEXTO
+    # NORMALIZAR CONTEXTO (ROBUSTO)
     # -------------------------------------------------
 
-    if isinstance(contexto, list):
-        partes = []
-        for d in contexto:
-            if isinstance(d, dict):
-                val = d.get("contenido") or d.get("texto")
-                if isinstance(val, str):
-                    partes.append(val)
-            elif isinstance(d, str):
-                partes.append(d)
-        contexto = " ".join(partes)
+    contexto = asegurar_string(contexto)
 
-    elif isinstance(contexto, dict):
-        contexto = contexto.get("contenido") or contexto.get("texto") or ""
-
-    if not isinstance(contexto, str) or not contexto.strip():
+    if not contexto.strip():
         return None
 
     # -------------------------------------------------
@@ -95,7 +104,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     chunks = [
         c.strip()
         for c in re.split(r"\n{2,}|--- CHUNK ---", contexto)
-        if len(c.strip()) > 60
+        if len(c.strip()) > 30
     ]
 
     frases = []
@@ -167,7 +176,7 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     if pide_numero:
         frases = [
             f for f in frases
-            if re.search(r'\b\d{2,5}[/\-]\d{2,4}\b', f)
+            if re.search(r'(n[°º]?\s*\d+|\d{2,5}[/\-]\d{2,4})', f, re.I)
         ]
 
         if not frases:
@@ -226,6 +235,14 @@ def manejar_cita(pregunta_low, contexto, pregunta):
             s_legal -= 3
         elif length > 120:
             s_legal -= 4
+
+        # boost si contiene número de resolución
+        if pide_numero and re.search(r'\d', f):
+            s_legal += 3
+
+        # penalizar frases muy largas tipo considerando
+        if f_low.startswith("que,"):
+            s_legal -= 2
 
         return (s_sem * 0.5) + s_legal
 
