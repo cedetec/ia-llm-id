@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from services.retrieval_text_utils import normalizar
+from backend.services.retrieval_text_utils import normalizar
 
 
 def extraer_nombre_documento(pregunta: str):
