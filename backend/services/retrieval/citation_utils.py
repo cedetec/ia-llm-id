@@ -32,7 +32,7 @@ def _extraer_palabras_clave(pregunta: str):
     ]
 
 
-def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
+def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado, seccion_objetivo=None):
 
     if not isinstance(texto, str):
         texto = str(texto or "")
@@ -50,15 +50,11 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
     if palabras:
 
         for palabra in palabras:
+            pat = re.escape(palabra)
+            match = re.search(pat, texto_norm, re.IGNORECASE)
 
-            for palabra in palabras:
-
-                pat = re.escape(palabra)
-
-                match = re.search(pat, texto_norm, re.IGNORECASE)
-
-                if match:
-                    break
+            if match:
+                break
 
     # ----------------------------------------------------
     # 2️⃣ patrones jurídicos si no hay palabra explícita
@@ -66,96 +62,39 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
 
     if not match:
 
-        patrones = [
+        if seccion_objetivo == "objetivo":
+            patrones = [
+                r"objetivo.{0,20}concurso",
+                r"objetivo\s+general",
+                r"tiene\s+por\s+objetivo",
+            ]
 
-            # --------------------------------
-            # OBJETIVO DEL CONCURSO (robusto)
-            # --------------------------------
+        elif seccion_objetivo == "requisito":
+            patrones = [
+                r"requisitos?.{0,20}postulacion",
+                r"deben\s+postular",
+            ]
 
-            r"objetivo.{0,20}concurso",
-            r"objetivo.{0,40}finalidad",
-            r"objetivo.{0,40}proposito",
-            r"tiene\s+por\s+objetivo",
-            r"tiene\s+por\s+finalidad",
-            r"el\s+presente\s+concurso\s+tiene\s+por\s+objetivo",
+        elif seccion_objetivo == "beneficiarios":
+            patrones = [
+                r"podran.{0,20}postular",
+                r"quienes.{0,20}pueden.{0,20}postular",
+            ]
 
-            # --------------------------------
-            # TITULOS DE SECCION
-            # --------------------------------
+        elif seccion_objetivo == "resolucion":
+            patrones = [
+                r"aprue?b[a-z]*\s+las?\s+bases",
+                r"resolucion\s+exenta",
+                r"res\.?\s*n[°o]\s*\d+",
+            ]
 
-            r"\d+\.\s*objetivo",
-            r"\d+\.\s*objetivo\s+del\s+concurso",
-            r"\d+\.\s*objetivo\s+general",
-
-            r"\d+\.\s*beneficiarios",
-
-            r"\d+\.\s*requisitos",
-            r"\d+\.\s*requisitos\s+de\s+postulacion",
-
-            r"\d+\.\s*postulacion",
-
-            # --------------------------------
-            # REQUISITOS
-            # --------------------------------
-
-            r"requisitos.{0,20}postulacion",
-            r"requisitos.{0,40}postular",
-
-            # --------------------------------
-            # POSTULANTES
-            # --------------------------------
-
-            r"podran.{0,20}postular",
-            r"quienes.{0,20}pueden.{0,20}postular",
-
-            # --------------------------------
-            # PROGRAMAS
-            # --------------------------------
-
-            r"\bidea\b",
-            r"i\s*\+\s*d",
-            r"investigacion.{0,20}desarrollo",
-            r"f\s*o\s*n\s*d\s*e\s*c\s*y\s*t",
-
-            # --------------------------------
-            # BASES
-            # --------------------------------
-
-            r"aprue?b[a-z]*\s+las?\s+bases",
-            r"aprue?b[a-z]*\s+las?\s+bases\s+del\s+concurso",
-            r"aprue?b[a-z]*.{0,20}bases",
-            r"resolucion\s+exenta",
-            r"resolucion\s+n[°o]\s*\d+",
-            r"res\.?\s*n[°o]\s*\d+",
-
-            # --------------------------------
-            # FECHAS
-            # --------------------------------
-
-            r"\b\d{1,2}/\d{1,2}/\d{4}\b"
-
-            r"aprueban\s+las\s+bases",
-            r"apruebese\s+las\s+bases",
-            r"aprueban\s+las\s+bases\s+del\s+concurso",
-
-
-            r"el\s+presente\s+concurso\s+tiene\s+por\s+objetivo",
-            r"objetivo\s+general\s+del\s+concurso",
-            r"el\s+objetivo\s+del\s+concurso",
-            r"podran\s+postular",
-            r"podran\s+presentar\s+proyectos",
-            r"beneficiarios\s+del\s+concurso",
-
-            r"el\s+objetivo\s+de\s+este\s+concurso",
-            r"el\s+objetivo\s+del\s+concurso",
-            r"objetivo\s+de\s+este\s+concurso",
-            r"objetivo\s+general",
-            r"podran\s+postular",
-            r"postulacion\s+debera\s+ser",
-            r"apruebanse\s+las\s+bases",
-            r"apruebase\s+las\s+bases",
-            r"aprueban\s+las\s+bases",
-        ]
+        else:
+            patrones = [
+                r"\bidea\b",
+                r"i\s*\+\s*d",
+                r"fondecyt",
+                r"\b\d{1,2}/\d{1,2}/\d{4}\b",
+            ]
 
         for p in patrones:
 
@@ -164,26 +103,62 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
             if match:
                 break
 
+    # ----------------------------------------------------
+    # 🔥 FILTRO POR INTENCIÓN (CLAVE)
+    # ----------------------------------------------------
+
+    if match and seccion_objetivo:
+
+        if seccion_objetivo == "objetivo":
+            if not re.search(r'objetivo|finalidad|proposito', texto_norm):
+                return None
+
+        elif seccion_objetivo == "requisito":
+            if not re.search(r'requisito', texto_norm):
+                return None
+
+        elif seccion_objetivo == "beneficiarios":
+            if not re.search(r'podran|quienes pueden|beneficiarios', texto_norm):
+                return None
+
+        elif seccion_objetivo == "resolucion":
+            if not re.search(r'resolucion|resuelv|aprueb', texto_norm):
+                return None
+
+    # ----------------------------------------------------
+    # 🔥 FILTRO DE BASURA ADMINISTRATIVA (MEJORADO)
+    # ----------------------------------------------------
+
+    if match and re.search(
+        r'ejemplar de las bases|acto administrativo|facultades que detenta|adjunto al acto',
+        texto_norm
+    ):
+        return None
+
+    # ----------------------------------------------------
+
     if not match:
 
-        # si el documento está fijado,
-        # devolver fragmento del texto en vez de descartarlo
         if modo_documento_fijado:
-
             texto = texto.strip()
 
-            if len(texto) > 200:
+            # 🔥 SOLO si contiene algo relevante
+            if any(x in texto_norm for x in [
+                "objetivo",
+                "requisito",
+                "postular",
+                "beneficiario",
+                "resolucion"
+            ]):
                 return texto[:200]
 
-            return texto
-
-        return texto
+        return None
 
     # ----------------------------------------------------
     # 3️⃣ extraer frase alrededor
     # ----------------------------------------------------
 
-    delimitadores = ['.', ';', ':', ',', '\n']
+    delimitadores = ['.', ';', ':', '\n']
 
     inicio = -1
 
@@ -210,12 +185,44 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado):
 
     frase = texto[inicio:fin].strip()
 
+    # ----------------------------------------------------
+    # 🔥 VALIDACIÓN FINAL POR SECCIÓN (CLAVE REAL)
+    # ----------------------------------------------------
+
+    frase_norm = _normalizar(frase)
+
+    if seccion_objetivo == "objetivo":
+        if not re.search(r'objetivo|finalidad|proposito', frase_norm):
+            return None
+
+    elif seccion_objetivo == "requisito":
+        if not re.search(r'requisito', frase_norm):
+            return None
+
+    elif seccion_objetivo == "beneficiarios":
+        if not re.search(r'podran|quienes pueden|beneficiarios', frase_norm):
+            return None
+
+    elif seccion_objetivo == "resolucion":
+        if not re.search(r'resolucion|resuelv|aprueb', frase_norm):
+            return None
+
+    # 🔥 FIX CRÍTICO: descartar frases basura muy cortas
+    if len(frase.split()) < 6:
+        return None
+
     if len(frase) < 40:
 
         # intentar ampliar alrededor del match
         start = max(0, match.start() - 120)
         end = min(len(texto), match.end() + 120)
 
-        return texto[start:end].strip()
+        frase = texto[start:end].strip()
+
+        # 🔥 volver a validar después de ampliar
+        if len(frase.split()) < 6:
+            return None
+
+        return frase
 
     return frase
