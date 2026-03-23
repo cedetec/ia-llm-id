@@ -14,6 +14,36 @@ from backend.services.chunking_juridico import detectar_tipo_chunk
 
 import re
 
+def limpiar_texto_ocr(texto: str) -> str:
+    t = texto.lower()
+
+    palabras = t.split()
+    if not palabras:
+        return ""
+
+    # ❌ palabras sin vocales (más confiable)
+    validas = [
+        p for p in palabras
+        if sum(c in "aeiouáéíóú" for c in p) >= 1
+    ]
+
+    if len(validas) < len(palabras) * 0.25:
+        return ""
+
+    # ❌ exceso de símbolos
+    letras = sum(c.isalpha() for c in t)
+    if letras < len(t) * 0.3:
+        return ""
+
+    # ❌ SOLO si hay MUCHAS secuencias raras
+    if len(re.findall(r'[bcdfghjklmnpqrstvwxyz]{6,}', t)) >= 3:
+        return ""
+
+    # limpieza
+    t = re.sub(r'[^a-z0-9áéíóúñü\s\.\,\-\(\)/°]', ' ', t)
+    t = re.sub(r'\s+', ' ', t)
+
+    return t.strip()
 
 # ==========================================
 # 🔥 DETECTOR DE ARTÍCULO
@@ -82,6 +112,18 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
     hashes = set()
 
+    MAX_CHUNKS_PER_DOC = 1000
+    doc_chunk_count = {}
+    doc_inserted_count = {}
+
+    # ✅ DEBUG DOCUMENTOS
+    docs_vistos = set()
+    doc_skip_count = {}
+
+    def registrar_skip(doc):
+        doc_skip_count.setdefault(doc, 0)
+        doc_skip_count[doc] += 1
+
     # --------------------------------------
     # LOOP PRINCIPAL
     # --------------------------------------
@@ -110,38 +152,77 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
         if not texto_raw or not documento:
             skipped += 1
+            if documento:
+                registrar_skip(normalizar(str(documento)))
             continue
 
         if not isinstance(texto_raw, str):
             skipped += 1
+            if documento:
+                registrar_skip(normalizar(str(documento)))
             continue
 
         documento_norm = normalizar(str(documento))
 
         if not documento_norm:
             skipped += 1
+            registrar_skip(documento_norm)
             continue
+
+        docs_vistos.add(documento_norm)
+
+        # 🔥 LIMITAR CHUNKS POR DOCUMENTO
+        doc_key = documento_norm
+        doc_chunk_count.setdefault(doc_key, 0)
+        doc_inserted_count.setdefault(doc_key, 0)
+
+        if doc_chunk_count[doc_key] >= MAX_CHUNKS_PER_DOC:
+            continue
+
+        doc_chunk_count[doc_key] += 1
 
         # -------------------------
         # LIMPIEZA
         # -------------------------
 
+        # 🔥 LIMPIEZA TEMPRANA
         texto_chunk = normalize_text(texto_raw)
 
-        if len(texto_chunk.split()) < 15:
-            skipped += 1
-            continue
+        texto_filtrado = limpiar_texto_ocr(texto_chunk)
 
-        contenido_norm = normalizar(texto_chunk)
+        if documento_norm == "09-22-res-bases-apoyo-basal-2022.pdf":
+            print(f"DEBUG LEN: {len(texto_filtrado.split())} → {texto_filtrado[:120]}")
+
+        # 🔥 SI OCR FALLA → USAR TEXTO ORIGINAL LIMPIO (fallback)
+        if not texto_filtrado:
+            print(f"⚠️ OCR débil, usando fallback: {documento_norm}")
+            texto_filtrado = texto_chunk  # 🔥 CLAVE
+
+        MIN_WORDS = 8
+
+        if len(texto_filtrado.split()) < MIN_WORDS:
+
+            # 🚨 permitir al menos algunos chunks si el documento está vacío
+            if doc_inserted_count[doc_key] == 0:
+                print(f"⚠️ Forzando chunk mínimo: {documento_norm}")
+            else:
+                skipped += 1
+                registrar_skip(documento_norm)
+                continue
+
+        contenido_norm = normalizar(texto_filtrado)
+
+        if not contenido_norm:
+            continue
 
         # -------------------------
         # HASH
         # -------------------------
 
-        content_hash = sha256_text(texto_chunk)
+        content_hash = sha256_text(texto_filtrado)
 
         if content_hash in hashes:
-            skipped += 1
+            registrar_skip(documento_norm)
             continue
 
         hashes.add(content_hash)
@@ -150,7 +231,24 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         # TIPO CHUNK (🔥 CLAVE)
         # -------------------------
 
-        tipo_chunk = detectar_tipo_chunk(texto_chunk)
+        tipo_chunk = detectar_tipo_chunk(texto_filtrado)
+
+        cont_l = contenido_norm
+
+        # 🔥 fallback si clasificador falla
+        if tipo_chunk == "general":
+
+            if re.search(r'\bobjetivo(s)?\b', cont_l):
+                tipo_chunk = "objetivo"
+
+            elif re.search(r'\brequisito(s)?\b', cont_l):
+                tipo_chunk = "requisito"
+
+            elif re.search(r'\b(postul|beneficiario)\b', cont_l):
+                tipo_chunk = "beneficiarios"
+
+            elif re.search(r'\b(resuelv|aprueb|resolucion)\b', cont_l):
+                tipo_chunk = "resolucion"
 
         # -------------------------
         # SECCIÓN (derivada simple)
@@ -165,14 +263,28 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         elif tipo_chunk == "objetivo":
             seccion = "objetivo"
 
-        elif tipo_chunk == "postulacion":
-            seccion = "postulacion"
+        elif tipo_chunk in ["postulacion", "beneficiarios"]:
+            seccion = "beneficiarios"
 
         elif tipo_chunk == "requisito":
             seccion = "requisito"
 
         else:
-            seccion = "general"
+            # 🔥 fallback semántico
+            if re.search(r'\bobjetivo(s)?\b', contenido_norm):
+                seccion = "objetivo"
+
+            elif re.search(r'\brequisito(s)?\b', contenido_norm):
+                seccion = "requisitos"
+
+            elif re.search(r'\b(postul|beneficiario)\b', contenido_norm):
+                seccion = "postulacion"
+
+            elif re.search(r'\b(resuelv|aprueb|resolucion)\b', contenido_norm):
+                seccion = "resolucion"
+
+            else:
+                seccion = "general"
 
         # -------------------------
         # TIPO DOCUMENTO
@@ -209,10 +321,11 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
         # -------------------------
 
         try:
-            embedding = generar_embedding(texto_chunk, tipo_doc)
+            embedding = generar_embedding(contenido_norm, tipo_doc)
 
             if not embedding:
                 embedding_errors += 1
+                registrar_skip(documento_norm)
                 continue
 
         except Exception as e:
@@ -230,7 +343,7 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
             res = upsert_chunk(
                 chunk_id,
-                texto_chunk,
+                texto_filtrado,
                 metadata,
                 embedding,
                 content_hash,
@@ -239,12 +352,22 @@ def indexar_documentos(*, doc: str | None = None, mode: str = "upsert"):
 
             if res.upserted_id:
                 inserted += 1
+                doc_inserted_count[doc_key] += 1  # 🔥 CLAVE
             elif res.modified_count > 0:
                 updated += 1
+                doc_inserted_count[doc_key] += 1
 
         except Exception as e:
             print("❌ Error Mongo:", e)
             skipped += 1
+            registrar_skip(documento_norm)
+
+    print("\n📊 DOCUMENTOS INDEXADOS:")
+    print(docs_vistos)
+
+    print("\n📊 SKIPS POR DOCUMENTO:")
+    for doc, count in doc_skip_count.items():
+        print(doc, "→", count)
 
     # --------------------------------------
     # RESULTADO FINAL
