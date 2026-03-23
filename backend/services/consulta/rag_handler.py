@@ -3,7 +3,7 @@ from backend.services.retrieval_service import obtener_contexto
 from backend.services.retrieval_text_utils import normalizar
 from backend.services.frase_ranker import rankear_frases
 from backend.services.retrieval_text_utils import safe_split
-
+import re
 
 def recuperar_contexto(pregunta, modo_cita=False, docfile=None):
 
