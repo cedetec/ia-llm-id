@@ -1,7 +1,7 @@
 # filter_builder.py
 import re
-from services.retrieval_text_utils import tokens, normalizar
-from services.retrieval.doc_utils import normalizar_nombre_doc
+from backend.services.retrieval_text_utils import tokens, normalizar
+from backend.services.retrieval.doc_utils import normalizar_nombre_doc
 
 
 def construir_filtro_inicial(pregunta: str, nombre_doc: str | None):
