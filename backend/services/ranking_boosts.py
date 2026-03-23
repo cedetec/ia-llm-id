@@ -1,12 +1,12 @@
 # ranking_boosts.py
 import re
-from backend.services.ranking_utils import normalizar_txt
+from backend.services.retrieval_text_utils import normalizar
 from backend.services.retrieval_text_utils import safe_split
 
 
 def boost_frase(pregunta, texto):
 
-    preg = normalizar_txt(pregunta)
+    preg = normalizar(pregunta)
 
     if len(preg) < 15:
         return 0
