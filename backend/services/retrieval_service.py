@@ -47,7 +47,7 @@ def obtener_contexto(
     modo_cita: bool = False,
     filtro_doc: str | None = None,
     top_k: int = 8,
-    scan: int = 300,
+    scan: int = 120,
 ):
 
     # --------------------------------------------------
@@ -84,7 +84,7 @@ def obtener_contexto(
     }
 
     toks = tokens(pregunta)
-    toks = [t for t in toks if len(t) > 4 and t not in STOPWORDS][:4]
+    toks = [t for t in toks if (len(t) > 3 or t.isdigit()) and t not in STOPWORDS][:6]
 
     # --------------------------------------------------
     # 🔥 FILTRO
@@ -96,13 +96,13 @@ def obtener_contexto(
 
     docs = find_docs(filtro, scan=scan) or []
 
-    if len(docs) > 300:
-        docs = docs[:300]
+    if len(docs) > 150:
+        docs = docs[:150]
 
     print("📦 DOCS ENCONTRADOS:", len(docs))
 
     # --------------------------------------------------
-    # 🔥 FALLBACK CORRECTO
+    # 🔥 FALLBACK CORRECTO (MEJORADO)
     # --------------------------------------------------
 
     if len(docs) < 5 and nombre_doc_norm:
@@ -111,15 +111,32 @@ def obtener_contexto(
 
         docs = find_docs(
             {
-                "metadata.documento_norm": {
-                    "$regex": nombre_doc_norm[:6],  # 🔥 parcial robusto
-                    "$options": "i"
-                }
+                "$and": [
+                    {
+                        "metadata.documento_norm": {
+                            "$regex": nombre_doc_norm[:6],
+                            "$options": "i"
+                        }
+                    },
+                    {
+                        "metadata.tipo_chunk": {
+                            "$in": [
+                                "resolucion",
+                                "objetivo",
+                                "requisito",
+                                "postulacion",
+                                "beneficiarios",
+                                "evaluacion",
+                                "financiamiento"
+                            ]
+                        }
+                    }
+                ]
             },
-            scan=200
+            scan=120
         ) or []
 
-        docs = docs[:150]
+        docs = docs[:100]
 
     if not docs:
         return "NO_CONTEXT"
@@ -132,7 +149,16 @@ def obtener_contexto(
 
     for d in docs:
 
-        cont = d.get("contenido_norm") or ""
+        cont = d.get("contenido_norm") or d.get("contenido") or d.get("texto") or ""
+
+        if isinstance(cont, dict):
+            cont = cont.get("contenido") or cont.get("texto") or ""
+
+        elif isinstance(cont, list):
+            cont = " ".join(
+                x.get("contenido", "") if isinstance(x, dict) else str(x)
+                for x in cont
+            )
 
         if not isinstance(cont, str):
             cont = str(cont)
@@ -166,42 +192,59 @@ def obtener_contexto(
 
         score = 0
 
-        # 🔥 match tokens (mejorado)
+        # match tokens
         hits = sum(1 for t in toks if t in cont)
         score += hits * 3
 
-        # 🔥 MATCH FRASE EXACTA (CRÍTICO)
+        # boost números
+        if any(w in pregunta_norm for w in ["numero", "fecha", "resolucion", "ano", "monto", "duracion"]):
+            if re.search(r'\d{2,}', cont):
+                score += 10
+
+        # match frase exacta
         for f in frases:
             if f in cont:
                 score += 25
 
-        # 🔥 tipo chunk
+        # tipo chunk
         tipo = meta.get("tipo_chunk")
-
         if tipo == "resolucion": score += 15
         elif tipo == "objetivo": score += 12
         elif tipo == "postulacion": score += 10
         elif tipo == "requisito": score += 9
 
-        # 🔥 sección
+        # sección
         if seccion and meta.get("seccion") == seccion:
             score += 12
 
-        # 🔥 artículo
+        # artículo
         if articulo and meta.get("articulo") == articulo:
             score += 25
 
-        # 🔥 resolutivo
+        # resolutivo
         if meta.get("es_resolutivo"):
             score += 12
 
-        # 🔥 inicio documento
+        # inicio documento
         if meta.get("chunk_index", 999) < 5:
             score += 5
 
-        # 🔥 boost documento correcto
+        # boost documento correcto
         if nombre_doc_norm and nombre_doc_norm in (meta.get("documento_norm") or ""):
             score += 20
+
+        # =========================================
+        # 🔥 AJUSTES POR LONGITUD
+        # =========================================
+
+        if len(cont) > 1200:
+            score -= 5
+
+        if len(cont) < 120:
+            score -= 3
+
+        if nombre_doc_norm and nombre_doc_norm in cont:
+            score += 5
 
         d["pre_score"] = score
 
@@ -238,8 +281,16 @@ def obtener_contexto(
 
         cont = r.get("contenido_norm")
 
-        if not cont or cont in seen:
+        if not cont:
             continue
+
+        # evitar duplicados semánticos
+        key = cont[:120]
+
+        if key in seen:
+            continue
+
+        seen.add(key)
 
         # 🔥 FILTRO DE CITA MEJORADO
         if modo_cita:
@@ -264,6 +315,5 @@ def obtener_contexto(
             if d.get("contenido_norm")
         ]
 
-    contexto = "\n\n".join(resultados)
-
+    contexto = "\n\n--- CHUNK ---\n\n".join(resultados)
     return contexto[:1800]
