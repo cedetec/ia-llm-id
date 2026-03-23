@@ -83,6 +83,14 @@ def tokens(pregunta: str) -> List[str]:
 
     toks = re.findall(r"[a-z0-9\+\-/]+", txt)
 
+    # separar cosas tipo 65-2020
+    extra = []
+    for t in toks:
+        if "-" in t or "/" in t:
+            extra.extend(re.split(r"[-/]", t))
+
+    toks.extend(extra)
+
     out = []
 
     for t in toks:
@@ -114,21 +122,58 @@ def tokens(pregunta: str) -> List[str]:
 
     return final
 
-def safe_split(x):
+def safe_text(x):
+    """
+    Convierte cualquier cosa a texto.
+    Acepta str, dict, list, etc.
+    """
+
+    if x is None:
+        return ""
 
     if isinstance(x, dict):
-        x = x.get("contenido") or x.get("texto") or ""
-
-    elif isinstance(x, list):
-        x = " ".join(
-            i.get("contenido", "") if isinstance(i, dict) else str(i)
-            for i in x
+        return (
+            x.get("contenido")
+            or x.get("texto")
+            or x.get("contenido_norm")
+            or ""
         )
 
-    if not isinstance(x, str):
-        x = str(x)
+    if isinstance(x, list):
+        partes = []
+        for i in x:
+            if isinstance(i, dict):
+                partes.append(
+                    i.get("contenido")
+                    or i.get("texto")
+                    or ""
+                )
+            else:
+                partes.append(str(i))
+        return " ".join(partes)
 
-    return re.findall(r"[a-záéíóúñ0-9]+", x.lower())
+    if isinstance(x, str):
+        return x
+
+    return str(x)
+
+
+def safe_split(x):
+    """
+    Tokenización segura para todo el sistema.
+    Nunca rompe aunque x sea dict/list/etc.
+    """
+
+    txt = safe_text(x)
+
+    txt = txt.replace("\u00A0", " ")
+    txt = re.sub(r"\s+", " ", txt)
+
+    return re.findall(r"[a-záéíóúñ0-9]+", txt.lower())
+
+
+def safe_len(x):
+    return len(safe_split(x))
 
 # =========================================================
 # NORMALIZACIÓN LINEAL (para bloques largos)
