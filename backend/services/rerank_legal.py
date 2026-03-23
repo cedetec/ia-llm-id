@@ -1,5 +1,6 @@
-#rerank_legal.py
+# backend/services/rerank_legal.py
 import re
+from backend.services.retrieval_text_utils import safe_split, safe_text
 
 def rerank_legal_chunks(pregunta, ranked):
 
@@ -7,8 +8,15 @@ def rerank_legal_chunks(pregunta, ranked):
 
     for r in ranked:
 
-        txt = r["contenido"].lower()
-        score = r["score"]
+        # 🔥 obtener texto seguro
+        txt = safe_text(
+            r.get("contenido")
+            or r.get("contenido_norm")
+            or ""
+        )
+
+        txt = txt.lower()
+        score = r.get("score", 0)
 
         # -----------------------------
         # Frases típicas de normativa
@@ -39,8 +47,14 @@ def rerank_legal_chunks(pregunta, ranked):
         if txt.count("|") > 4:
             score -= 0.05
 
+        # 🔥 longitud segura
+        words = len(safe_split(txt))
+
+        if words > 250:
+            score -= 0.05
+
         r["score"] = score
 
-    ranked.sort(key=lambda x: x["score"], reverse=True)
+    ranked.sort(key=lambda x: x.get("score", 0), reverse=True)
 
     return ranked
