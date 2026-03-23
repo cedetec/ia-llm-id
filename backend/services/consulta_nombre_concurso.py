@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 from backend.services.intent_service import extraer_nombre_concurso
-from backend.services.consulta_utils_text import normalizar_txt
+from backend.services.retrieval_text_utils import normalizar
 
 def extraer_nombre_concurso_fallback(p: str) -> Optional[str]:
     p = (p or "").strip()
@@ -33,7 +33,7 @@ def extraer_nombre_concurso_fallback(p: str) -> Optional[str]:
     return None
 
 def extraer_nombre_concurso_flexible(pregunta: str) -> Optional[str]:
-    p = normalizar_txt(pregunta).strip()
+    p = normalizar(pregunta).strip()
 
     m = re.search(r'“([^”]{3,120})”|"([^"]{3,120})"', p)
     if m:
@@ -77,7 +77,7 @@ def obtener_nombre_pedido(pregunta: str, pregunta_norm: str) -> Optional[str]:
     nombre = candidatos_validos[0]
 
     # 🔥 AHORA sí limpiar correctamente
-    nombre = normalizar_txt(nombre)
+    nombre = normalizar(nombre)
 
     nombre = re.sub(
         r"\b(cita|textual|frase|literal|exacta|exactamente|tal cual)\b.*$",
