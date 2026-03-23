@@ -4,6 +4,7 @@ import fitz
 import pytesseract
 from pdf2image import convert_from_path
 from pdf2image import pdfinfo_from_path
+from backend.services.retrieval_text_utils import safe_split
 
 import re
 
@@ -49,7 +50,7 @@ def texto_valido(texto: str) -> bool:
     if not texto:
         return False
 
-    palabras = texto.split()
+    palabras = safe_split(texto)
     if len(palabras) < 40:
         return False
 
