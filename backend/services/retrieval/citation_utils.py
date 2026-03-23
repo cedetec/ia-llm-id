@@ -1,7 +1,9 @@
+
 # backend/services/retrieval/citation_utils.py
 
 import re
 import unicodedata
+from backend.services.retrieval_text_utils import safe_split
 
 
 def _normalizar(txt: str) -> str:
@@ -208,7 +210,7 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado, seccion_objetivo
             return None
 
     # 🔥 FIX CRÍTICO: descartar frases basura muy cortas
-    if len(frase.split()) < 6:
+    if len(safe_split(frase)) < 6:
         return None
 
     if len(frase) < 40:
@@ -220,7 +222,7 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado, seccion_objetivo
         frase = texto[start:end].strip()
 
         # 🔥 volver a validar después de ampliar
-        if len(frase.split()) < 6:
+        if len(safe_split(frase)) < 6:
             return None
 
         return frase
