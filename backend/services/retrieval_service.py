@@ -1,30 +1,23 @@
 # backend/services/retrieval_service.py
 
-from backend.services.retrieval.doc_utils import extraer_nombre_documento
-from backend.services.retrieval.intent_utils import (
-    detectar_seccion_simple,
-    detectar_modo_cita,
-)
+from backend.services.retrieval.doc_utils import extraer_nombre_documento, normalizar_nombre_doc
+from backend.services.retrieval.intent_utils import detectar_seccion_simple, detectar_modo_cita
 from backend.services.retrieval.filter_builder import construir_filtro_inicial
 from backend.services.retrieval.chunk_filters import filtrar_posicional
 from backend.services.retrieval.ranking_pipeline import rankear_chunks
 from backend.services.retrieval.citation_utils import aplicar_filtro_cita
 from backend.services.retrieval_mongo_repo import find_docs
 from backend.services.retrieval_text_utils import tokens, normalizar
-from backend.services.consulta_utils_text import extraer_palabra_entre_comillas
 
 import re
 
-
-# ==========================================
-# 🔥 DETECTOR DE ARTÍCULO
-# ==========================================
 
 MAPA_ARTICULOS = {
     "primero": 1, "segundo": 2, "tercero": 3, "cuarto": 4,
     "quinto": 5, "sexto": 6, "septimo": 7, "séptimo": 7,
     "octavo": 8, "noveno": 9, "decimo": 10, "décimo": 10
 }
+
 
 def detectar_articulo(pregunta: str):
     p = pregunta.lower()
@@ -43,9 +36,9 @@ def detectar_articulo(pregunta: str):
     return None
 
 
-# ==========================================
-# 🔥 FUNCIÓN PRINCIPAL
-# ==========================================
+# ==================================================
+# 🔥 FUNCIÓN PRINCIPAL OPTIMIZADA
+# ==================================================
 
 def obtener_contexto(
     pregunta: str,
@@ -54,169 +47,97 @@ def obtener_contexto(
     modo_cita: bool = False,
     filtro_doc: str | None = None,
     top_k: int = 8,
-    scan: int = 4000,
+    scan: int = 300,
 ):
 
-    docs = []  # 🔥 FIX CRÍTICO
-
     # --------------------------------------------------
-    # 🔎 Detectar documento
+    # 🔎 DOCUMENTO
     # --------------------------------------------------
 
     nombre_doc = filtro_doc or extraer_nombre_documento(pregunta)
 
+    nombre_doc_norm = None
     if nombre_doc:
-        nombre_doc = normalizar(nombre_doc)
-        scan = max(scan, 5000)
+        nombre_doc_norm = normalizar_nombre_doc(nombre_doc)
+        scan = min(max(scan, 200), 600)
 
     # --------------------------------------------------
-    # 🔎 Detectar modo cita
+    # 🔎 INTENCIÓN
     # --------------------------------------------------
 
     if detectar_modo_cita(pregunta):
         modo_cita = True
         top_k = max(top_k, 6)
 
-    # --------------------------------------------------
-    # 🔎 Detectar intención
-    # --------------------------------------------------
-
     seccion = detectar_seccion_simple(pregunta)
     articulo = detectar_articulo(pregunta)
-
     pregunta_norm = normalizar(pregunta)
 
-    busca_objetivo = "objetivo" in pregunta_norm
-    busca_postulacion = any(x in pregunta_norm for x in ["postular", "beneficiario"])
-    busca_requisito = "requisito" in pregunta_norm
-    busca_resolucion = any(x in pregunta_norm for x in ["resuelve", "resolucion", "aprueba"])
-
     # --------------------------------------------------
-    # 🔎 Construir filtro
+    # 🔎 TOKENS LIMPIOS
     # --------------------------------------------------
 
-    pregunta_low = normalizar(pregunta)
+    STOPWORDS = {
+        "documento", "extrae", "frase", "textual",
+        "menciona", "indique", "responde", "cita",
+        "aparece", "donde", "parte", "solo"
+    }
 
-    palabra = extraer_palabra_entre_comillas(pregunta)
+    toks = tokens(pregunta)
+    toks = [t for t in toks if len(t) > 4 and t not in STOPWORDS][:4]
 
-    # 🔥 1. palabra entre comillas (PRIORIDAD MÁXIMA)
-    if palabra:
-        filtro_base = {
-            "contenido_norm": {"$regex": palabra, "$options": "i"}
-        }
+    # --------------------------------------------------
+    # 🔥 FILTRO
+    # --------------------------------------------------
 
-    # 🔥 2. resolución (CLAVE TESIS)
-    elif any(x in pregunta_low for x in ["resolucion", "res.", "rex", "resuelve"]):
-        filtro_base = {
-            "$or": [
-                {"contenido_norm": {"$regex": "resolucion", "$options": "i"}},
-                {"contenido_norm": {"$regex": "resolución", "$options": "i"}},
-                {"contenido_norm": {"$regex": "resuelv", "$options": "i"}},
-                {"contenido_norm": {"$regex": "rex", "$options": "i"}},
-                {"contenido_norm": {"$regex": "res\\.", "$options": "i"}},
-            ]
-        }
-
-    # 🔥 3. lo que ya tenías
-    elif "aprueb" in pregunta_low:
-        filtro_base = {
-            "$or": [
-                {"contenido_norm": {"$regex": "aprueb", "$options": "i"}},
-                {"contenido_norm": {"$regex": "aprueban", "$options": "i"}},
-                {"contenido_norm": {"$regex": "apruebase", "$options": "i"}},
-            ]
-        }
-
-    elif "objetivo" in pregunta_low:
-        filtro_base = {
-            "$or": [
-                {"contenido_norm": {"$regex": "objetivo", "$options": "i"}},
-                {"contenido_norm": {"$regex": "finalidad", "$options": "i"}},
-            ]
-        }
-
-    elif "requisito" in pregunta_low:
-        filtro_base = {
-            "$or": [
-                {"contenido_norm": {"$regex": "requisito", "$options": "i"}},
-                {"contenido_norm": {"$regex": "postulacion", "$options": "i"}},
-                {"contenido_norm": {"$regex": "deben", "$options": "i"}},
-            ]
-        }
-
-    else:
-        filtro_base = construir_filtro_inicial(pregunta, None)
-
-    if nombre_doc:
-
-        filtro_doc_q = {
-            "$or": [
-                {"metadata.documento_norm": {"$regex": nombre_doc, "$options": "i"}},
-                {"metadata.documento": {"$regex": nombre_doc, "$options": "i"}}
-            ]
-        }
-
-        if filtro_base:
-            filtro = {"$and": [filtro_doc_q, filtro_base]}
-        else:
-            filtro = filtro_doc_q
-
-    else:
-        filtro = filtro_base
+    filtro = construir_filtro_inicial(pregunta, nombre_doc)
 
     print("\n🧪 FILTRO FINAL:", filtro)
 
-    # --------------------------------------------------
-    # 🔎 Obtener documentos
-    # --------------------------------------------------
-
     docs = find_docs(filtro, scan=scan) or []
+
+    if len(docs) > 300:
+        docs = docs[:300]
 
     print("📦 DOCS ENCONTRADOS:", len(docs))
 
-    # 🔥 fallback si filtro fue demasiado estricto
-    if len(docs) == 0 and nombre_doc:
+    # --------------------------------------------------
+    # 🔥 FALLBACK CORRECTO
+    # --------------------------------------------------
 
-        print("⚠️ fallback por documento")
+    if len(docs) < 5 and nombre_doc_norm:
+
+        print("⚠️ fallback inteligente")
 
         docs = find_docs(
             {
                 "metadata.documento_norm": {
-                    "$regex": nombre_doc,
+                    "$regex": nombre_doc_norm[:6],  # 🔥 parcial robusto
                     "$options": "i"
                 }
             },
-            scan=min(scan, 1000)
+            scan=200
         ) or []
 
-        print("📦 DOCS fallback:", len(docs))
+        docs = docs[:150]
 
-    if len(docs) == 0:
-        return ""
+    if not docs:
+        return "NO_CONTEXT"
 
     # --------------------------------------------------
-    # 🔥 Limpieza
+    # 🔥 LIMPIEZA
     # --------------------------------------------------
 
     docs_limpios = []
 
     for d in docs:
 
-        cont = d.get("contenido_norm") or d.get("texto_extraido")
-
-        if isinstance(cont, dict):
-            cont = cont.get("contenido") or cont.get("texto") or ""
-
-        elif isinstance(cont, list):
-            cont = " ".join(
-                x.get("contenido", "") if isinstance(x, dict) else str(x)
-                for x in cont
-            )
+        cont = d.get("contenido_norm") or ""
 
         if not isinstance(cont, str):
             cont = str(cont)
 
-        if not cont or len(cont) < 40:
+        if len(cont) < 50:
             continue
 
         cont_norm = normalizar(cont)
@@ -224,31 +145,19 @@ def obtener_contexto(
         if any(x in cont_norm for x in ["anexo", "tabla", "bibliografia"]):
             continue
 
-        d["contenido_raw"] = cont
         d["contenido_norm"] = cont_norm
-        
         docs_limpios.append(d)
 
     docs = docs_limpios
 
     if not docs:
-        return ""
+        return "NO_CONTEXT"
 
     # --------------------------------------------------
-    # 🔎 Tokens
+    # 🔥 PRE-SCORING AVANZADO
     # --------------------------------------------------
 
-    toks = tokens(pregunta) or []
-    STOPWORDS = {"del", "las", "los", "una", "uno", "para", "como"}
-
-    toks = [
-        t for t in toks
-        if len(t) > 2 and t not in STOPWORDS
-    ]
-
-    # --------------------------------------------------
-    # 🔥 SCORING
-    # --------------------------------------------------
+    frases = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', pregunta_norm)
 
     for d in docs:
 
@@ -257,59 +166,58 @@ def obtener_contexto(
 
         score = 0
 
-        # léxico
+        # 🔥 match tokens (mejorado)
         hits = sum(1 for t in toks if t in cont)
+        score += hits * 3
 
-        if hits >= 4: score += 8
-        elif hits == 3: score += 6
-        elif hits == 2: score += 3
+        # 🔥 MATCH FRASE EXACTA (CRÍTICO)
+        for f in frases:
+            if f in cont:
+                score += 25
 
+        # 🔥 tipo chunk
         tipo = meta.get("tipo_chunk")
 
-        if tipo == "resolucion": score += 10
-        elif tipo == "objetivo": score += 8
-        elif tipo == "postulacion": score += 8
-        elif tipo == "requisito": score += 6
-        elif tipo == "considerando": score += 3
+        if tipo == "resolucion": score += 15
+        elif tipo == "objetivo": score += 12
+        elif tipo == "postulacion": score += 10
+        elif tipo == "requisito": score += 9
 
-        if busca_objetivo and tipo == "objetivo": score += 10
-        if busca_postulacion and tipo == "postulacion": score += 10
-        if busca_requisito and tipo == "requisito": score += 8
-        if busca_resolucion and tipo == "resolucion": score += 12
+        # 🔥 sección
+        if seccion and meta.get("seccion") == seccion:
+            score += 12
 
-        if articulo:
-            art_meta = meta.get("articulo")
-            if art_meta:
-                m = re.search(r'\d+', str(art_meta))
-                if m and int(m.group()) == articulo:
-                    score += 20
+        # 🔥 artículo
+        if articulo and meta.get("articulo") == articulo:
+            score += 25
 
-        if meta.get("chunk_index", 999) < 5:
-            score += 3
-
+        # 🔥 resolutivo
         if meta.get("es_resolutivo"):
             score += 12
 
-        # 🔥 boost especial para citas
-        if modo_cita:
-            if any(x in cont for x in ["resolucion", "aprueba", "objetivo"]):
-                score += 8
+        # 🔥 inicio documento
+        if meta.get("chunk_index", 999) < 5:
+            score += 5
+
+        # 🔥 boost documento correcto
+        if nombre_doc_norm and nombre_doc_norm in (meta.get("documento_norm") or ""):
+            score += 20
 
         d["pre_score"] = score
 
-    docs = sorted(docs, key=lambda x: x["pre_score"], reverse=True)[:200]
+    docs = sorted(docs, key=lambda x: x["pre_score"], reverse=True)[:120]
 
     # --------------------------------------------------
-    # 🔎 Filtro por sección
+    # 🔎 FILTRO SECCIÓN SUAVE
     # --------------------------------------------------
 
     if seccion:
         filtrados = filtrar_posicional(docs, seccion)
-        if len(filtrados) > 3:
-            docs = filtrados
+        if filtrados:
+            docs = filtrados + docs[:40]
 
     # --------------------------------------------------
-    # 🔥 Ranking final
+    # 🔥 RANKING FINAL
     # --------------------------------------------------
 
     ranked = rankear_chunks(
@@ -320,7 +228,7 @@ def obtener_contexto(
     )
 
     # --------------------------------------------------
-    # 🔥 Selección
+    # 🔥 SELECCIÓN FINAL
     # --------------------------------------------------
 
     resultados = []
@@ -333,8 +241,13 @@ def obtener_contexto(
         if not cont or cont in seen:
             continue
 
+        # 🔥 FILTRO DE CITA MEJORADO
         if modo_cita:
-            cont_filtrado = aplicar_filtro_cita(pregunta, cont, nombre_doc is not None)
+            cont_filtrado = aplicar_filtro_cita(
+                pregunta,
+                cont,
+                nombre_doc is not None
+            )
             if cont_filtrado:
                 cont = cont_filtrado
 
@@ -344,13 +257,13 @@ def obtener_contexto(
         if len(resultados) >= top_k:
             break
 
-    # fallback final
     if not resultados:
-        for d in docs[:top_k]:
-            cont = d.get("contenido_norm")
-            if cont:
-                resultados.append(cont.strip())
+        resultados = [
+            d["contenido_norm"]
+            for d in docs[:top_k]
+            if d.get("contenido_norm")
+        ]
 
     contexto = "\n\n".join(resultados)
 
-    return contexto[:3500]
+    return contexto[:1800]
