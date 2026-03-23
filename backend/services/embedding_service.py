@@ -1,6 +1,7 @@
 #embedding_service.py
 
 from sentence_transformers import SentenceTransformer
+from backend.services.retrieval_text_utils import safe_split
 import re
 
 _model = None
@@ -36,7 +37,7 @@ def embed_text(text: str, mode: str = "passage") -> list[float]:
         text = text[:MAX_CHARS]
 
     MAX_WORDS = 350
-    words = text.split() if isinstance(text, str) else []
+    words = safe_split(text) if isinstance(text, str) else []
     if len(words) > MAX_WORDS:
         text = " ".join(words[:MAX_WORDS])
 
