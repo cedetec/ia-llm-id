@@ -87,10 +87,20 @@ def obtener_contexto(
     toks = [t for t in toks if (len(t) > 3 or t.isdigit()) and t not in STOPWORDS][:6]
 
     # --------------------------------------------------
-    # 🔥 FILTRO
+    # 🔥 FILTRO INTELIGENTE
     # --------------------------------------------------
 
-    filtro = construir_filtro_inicial(pregunta, nombre_doc)
+    if nombre_doc:
+        # 🔥 Si hay documento → NO filtrar por contenido
+        filtro = {
+            "$or": [
+                {"metadata.documento_norm": {"$regex": nombre_doc_norm, "$options": "i"}},
+                {"metadata.documento": {"$regex": nombre_doc, "$options": "i"}}
+            ]
+        }
+    else:
+        # filtro normal
+        filtro = construir_filtro_inicial(pregunta, nombre_doc)
 
     print("\n🧪 FILTRO FINAL:", filtro)
 
@@ -102,12 +112,37 @@ def obtener_contexto(
     print("📦 DOCS ENCONTRADOS:", len(docs))
 
     # --------------------------------------------------
-    # 🔥 FALLBACK CORRECTO (MEJORADO)
+    # 🔥 FALLBACK INTELIGENTE (MEJORADO)
     # --------------------------------------------------
 
     if len(docs) < 5 and nombre_doc_norm:
 
         print("⚠️ fallback inteligente")
+
+        docs_fallback = find_docs(
+            {
+                "metadata.documento_norm": {
+                    "$regex": nombre_doc_norm[:6],
+                    "$options": "i"
+                }
+            },
+            scan=200
+        ) or []
+
+        # combinar, no reemplazar
+        docs = docs + docs_fallback
+
+        # eliminar duplicados por _id
+        seen_ids = set()
+        docs_unicos = []
+
+        for d in docs:
+            _id = d.get("_id")
+            if _id and _id not in seen_ids:
+                seen_ids.add(_id)
+                docs_unicos.append(d)
+
+        docs = docs_unicos[:150]
 
         docs = find_docs(
             {
@@ -127,7 +162,9 @@ def obtener_contexto(
                                 "postulacion",
                                 "beneficiarios",
                                 "evaluacion",
-                                "financiamiento"
+                                "financiamiento",
+                                "general",
+                                "considerando"
                             ]
                         }
                     }
@@ -233,6 +270,22 @@ def obtener_contexto(
         if nombre_doc_norm and nombre_doc_norm in (meta.get("documento_norm") or ""):
             score += 20
 
+        # boost fechas
+        if re.search(r'\d{1,2}/\d{1,2}/\d{2,4}', cont):
+            score += 8
+
+        # boost tomado de razón
+        if "tomado de razon" in cont:
+            score += 10
+
+        # boost visto
+        if "visto" in cont:
+            score += 6
+
+        # boost considerando
+        if "considerando" in cont:
+            score += 5
+
         # =========================================
         # 🔥 AJUSTES POR LONGITUD
         # =========================================
@@ -301,6 +354,9 @@ def obtener_contexto(
             )
             if cont_filtrado:
                 cont = cont_filtrado
+            # 🔥 fallback: si no encuentra frase, usar el chunk
+            else:
+                cont = cont
 
         resultados.append(cont.strip())
         seen.add(cont)
