@@ -97,6 +97,15 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     es_resolucion = any(x in pregunta_norm for x in ["resol", "rex"])
     pide_numero = any(x in pregunta_norm for x in ["numero", "n°", "nº"])
 
+    es_beneficiarios = any(x in pregunta_norm for x in [
+        "beneficiario",
+        "beneficiarios",
+        "quienes pueden",
+        "quiénes pueden",
+        "postular",
+        "postulantes"
+    ])
+
     # -------------------------------------------------
     # DIVISIÓN EN FRASES
     # -------------------------------------------------
@@ -154,10 +163,25 @@ def manejar_cita(pregunta_low, contexto, pregunta):
                 if any(x in sub_norm for x in ["requisito", "postular", "deben"]):
                     match = True
 
-            elif es_resolucion:
-                if any(x in sub_norm for x in ["resolucion", "resuelv", "aprueb"]):
+            elif es_beneficiarios:
+                if any(x in sub_norm for x in [
+                    "postular",
+                    "postulante",
+                    "beneficiario",
+                    "podran participar",
+                    "podran postular"
+                ]):
                     match = True
 
+            elif es_resolucion:
+                if any(x in sub_norm for x in [
+                    "resolucion",
+                    "resuelv",
+                    "aprueb",
+                    "aprueba bases",
+                    "apruebase las bases"
+                ]):
+                    match = True
             else:
                 match = True  # fallback abierto
 
@@ -176,7 +200,11 @@ def manejar_cita(pregunta_low, contexto, pregunta):
     if pide_numero:
         frases = [
             f for f in frases
-            if re.search(r'(n[°º]?\s*\d+|\d{2,5}[/\-]\d{2,4})', f, re.I)
+            if re.search(
+                r'(n[°º]?\s*\d+|\d{2,5}[/\-]\d{2,4}|resolucion\s+\d+)',
+                f,
+                re.I
+            )
         ]
 
         if not frases:
@@ -227,6 +255,22 @@ def manejar_cita(pregunta_low, contexto, pregunta):
         if es_requisito and any(x in f_low for x in ["requisito", "deben"]):
             s_legal += 4
 
+        # bonus palabras legales importantes
+        if "aprueba bases" in f_low:
+            s_legal += 5
+
+        if "resuelvo" in f_low:
+            s_legal += 4
+
+        if "podran postular" in f_low:
+            s_legal += 4
+
+        if "requisitos de postulacion" in f_low:
+            s_legal += 4
+
+        if "objetivo del concurso" in f_low:
+            s_legal += 5
+
         # longitud ideal
         length = len(safe_split(f))
         if 12 <= length <= 60:
@@ -242,7 +286,10 @@ def manejar_cita(pregunta_low, contexto, pregunta):
 
         # penalizar frases muy largas tipo considerando
         if f_low.startswith("que,"):
-            s_legal -= 2
+            s_legal -= 4
+
+        if "considerando" in f_low:
+            s_legal -= 3
 
         return (s_sem * 0.5) + s_legal
 
