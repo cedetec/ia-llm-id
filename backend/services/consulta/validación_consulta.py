@@ -5,6 +5,15 @@ def es_consulta_id(pregunta: str) -> bool:
 
     p = pregunta.lower()
 
+    # --------------------------------------------------
+    # 🔥 SI MENCIONA DOCUMENTO PDF → SIEMPRE VÁLIDA
+    # --------------------------------------------------
+    if ".pdf" in p:
+        return True
+
+    # --------------------------------------------------
+    # 🔥 PALABRAS CLAVE I+D / FONDOS
+    # --------------------------------------------------
     palabras_clave = [
         "concurso",
         "fondos",
@@ -37,7 +46,27 @@ def es_consulta_id(pregunta: str) -> bool:
         "bases"
     ]
 
+    # --------------------------------------------------
+    # 🔥 PALABRAS CLAVE DOCUMENTOS LEGALES
+    # --------------------------------------------------
+    palabras_legales = [
+        "resolucion",
+        "resolución",
+        "articulo",
+        "artículo",
+        "fecha",
+        "tomado de razon",
+        "tomado de razón",
+        "resuelvo",
+        "aprueba",
+        "apruebase"
+    ]
+
     for k in palabras_clave:
+        if k in p:
+            return True
+
+    for k in palabras_legales:
         if k in p:
             return True
 
