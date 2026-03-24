@@ -40,8 +40,35 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado, seccion_objetivo
         texto = str(texto or "")
 
     texto_norm = _normalizar(texto)
-
     palabras = _extraer_palabras_clave(pregunta)
+
+    # 🔥 DETECTAR SECCIÓN
+    if not seccion_objetivo:
+
+        p = _normalizar(pregunta)
+
+        if any(x in p for x in ["objetivo", "finalidad", "proposito"]):
+            seccion_objetivo = "objetivo"
+
+        elif any(x in p for x in ["requisito", "requisitos", "postulacion"]):
+            seccion_objetivo = "requisito"
+
+        elif any(x in p for x in [
+            "beneficiario",
+            "beneficiarios",
+            "quienes pueden",
+            "postular",
+            "postulantes"
+        ]):
+            seccion_objetivo = "beneficiarios"
+
+        elif any(x in p for x in [
+            "resolucion",
+            "aprueba bases",
+            "rex",
+            "numero de resolucion"
+        ]):
+            seccion_objetivo = "resolucion"
 
     match = None
 
@@ -87,7 +114,10 @@ def aplicar_filtro_cita(pregunta, texto, modo_documento_fijado, seccion_objetivo
             patrones = [
                 r"aprue?b[a-z]*\s+las?\s+bases",
                 r"resolucion\s+exenta",
-                r"res\.?\s*n[°o]\s*\d+",
+                r"resolucion\s+n[°o]\s*\d+",
+                r"\d{2,5}/\d{4}",
+                r"resuelv",
+                r"rex\s*\d+",
             ]
 
         else:
