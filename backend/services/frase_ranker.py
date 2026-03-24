@@ -19,7 +19,7 @@ def dividir_frases(texto: str):
 
     # split robusto (legal + OCR)
     frases = re.split(
-        r'(?<=[\.\!\?])\s+|\n+|;|:|,\s+(?=[A-Z])',
+        r'(?<=[\.\!\?])\s+|\n{2,}|;|:\s+|,\s+(?=[A-Z])',
         texto
     )
 
@@ -61,6 +61,29 @@ def rankear_frases(texto, tokens, pregunta=None, top_k=3):
 
     frases = dividir_frases(texto)
 
+    # -------------------------------------------------
+    # 🔥 DETECTAR INTENCIÓN DESDE LA PREGUNTA
+    # -------------------------------------------------
+    preg_norm = (pregunta or "").lower()
+
+    es_objetivo = "objetivo" in preg_norm
+    es_requisito = any(x in preg_norm for x in ["requisito", "postular"])
+    es_beneficiarios = any(x in preg_norm for x in [
+        "beneficiario",
+        "beneficiarios",
+        "quienes pueden",
+        "postulantes"
+    ])
+    es_resolucion = any(x in preg_norm for x in [
+        "resolucion",
+        "aprueba",
+        "rex",
+        "numero de resolucion"
+    ])
+    es_evaluacion = "evaluacion" in preg_norm
+    es_financiamiento = any(x in preg_norm for x in ["monto", "financiamiento"])
+    es_duracion = any(x in preg_norm for x in ["duracion", "meses", "años"])
+
     if not frases:
         return []
 
@@ -91,14 +114,60 @@ def rankear_frases(texto, tokens, pregunta=None, top_k=3):
             f_low = f.lower()
 
             s_legal = 0
+
+            # ----------------------------------
+            # BONUS SEGÚN CONTENIDO LEGAL
+            # ----------------------------------
+
             if "resuelvo" in f_low:
-                s_legal += 0.5
-            if "apruebase" in f_low or "apruebanse" in f_low:
                 s_legal += 0.6
+
+            if "apruebase" in f_low or "apruebanse" in f_low:
+                s_legal += 0.8
+
             if "objetivo" in f_low:
+                s_legal += 0.6
+
+            if "requisito" in f_low:
+                s_legal += 0.5
+
+            if "beneficiario" in f_low or "postular" in f_low:
+                s_legal += 0.5
+
+            if "evaluacion" in f_low:
+                s_legal += 0.5
+
+            if "monto" in f_low or "financiamiento" in f_low:
+                s_legal += 0.5
+
+            if "meses" in f_low or "duracion" in f_low:
                 s_legal += 0.4
-            if "requisitos" in f_low:
-                s_legal += 0.3
+
+
+            # ----------------------------------
+            # BONUS SEGÚN INTENCIÓN PREGUNTA
+            # ----------------------------------
+
+            if es_objetivo and "objetivo" in f_low:
+                s_legal += 1.5
+
+            if es_requisito and "requisito" in f_low:
+                s_legal += 1.5
+
+            if es_beneficiarios and ("postular" in f_low or "beneficiario" in f_low):
+                s_legal += 1.5
+
+            if es_resolucion and ("resolucion" in f_low or "aprueb" in f_low):
+                s_legal += 1.5
+
+            if es_evaluacion and "evaluacion" in f_low:
+                s_legal += 1.5
+
+            if es_financiamiento and ("monto" in f_low or "financiamiento" in f_low):
+                s_legal += 1.5
+
+            if es_duracion and ("meses" in f_low or "duracion" in f_low):
+                s_legal += 1.5
 
             # -----------------------------
             # LONGITUD
