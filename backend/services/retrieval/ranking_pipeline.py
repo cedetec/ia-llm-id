@@ -110,6 +110,13 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             continue
 
         # ----------------------------------
+        # 🔥 BOOST SI EL NOMBRE DEL DOCUMENTO ESTÁ EN EL CHUNK
+        # ----------------------------------
+        doc_name = meta.get("documento_norm", "")
+        if doc_name and doc_name in cont_l:
+            total += 10
+
+        # ----------------------------------
         # 🔥 SCORE BASE
         # ----------------------------------
 
@@ -145,7 +152,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         frases = re.findall(r'[\"“”]([^\"“”]+)[\"“”]', preg_l)
         for f in frases:
             if f in cont_l:
-                total += 35
+                total += 60
 
         # ----------------------------------
         # 🔥 MATCH DIRECTO (CLAVE)
@@ -166,6 +173,25 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
 
         tipo = meta.get("tipo_chunk", "")
 
+        # ----------------------------------
+        # 🔥 BOOST FUERTE POR INTENT + TIPO
+        # ----------------------------------
+
+        if intent == "objetivo" and tipo == "objetivo":
+            total += 40
+
+        elif intent == "requisito" and tipo in ["requisito", "postulacion"]:
+            total += 35
+
+        elif intent == "beneficiarios" and tipo in ["beneficiarios", "postulacion"]:
+            total += 35
+
+        elif intent == "resolucion" and tipo in ["resolucion", "articulo_resolucion"]:
+            total += 45
+
+        elif intent == "evaluacion" and tipo == "evaluacion":
+            total += 35
+
         if tipo == "articulo_resolucion":
             total += 18
         elif tipo == "resolucion":
@@ -181,7 +207,7 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
         elif tipo == "postulacion":
             total += 15
         elif tipo == "general":
-            total -= 8
+            total -= 15
 
         # ----------------------------------
         # 🔥 INTENT BOOST (NO DESTRUCTIVO)
@@ -209,9 +235,11 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             if any(x in cont_l for x in [
                 "beneficiario",
                 "postulante",
-                "persona natural"
+                "persona natural",
+                "podran postular",
+                "podran participar"
             ]):
-                total += 25
+                total += 40
 
         elif intent == "resolucion":
             if any(x in cont_l for x in [
@@ -287,9 +315,9 @@ def rankear_chunks(pregunta, docs, toks, modo_cita=False):
             total += 8
 
         # 🔥 boost si contiene números relevantes
-        if any(w in preg_l for w in ["numero", "fecha", "monto", "duracion", "ano"]):
-            if re.search(r'\d{2,}', cont_l):
-                total += 10
+        if any(w in preg_l for w in ["numero", "fecha", "monto", "duracion", "ano", "resolucion"]):
+            if re.search(r'\d{2,5}[/\-]\d{2,4}', cont_l):
+                total += 25
 
         # ----------------------------------
         # 🔥 PENALIZACIONES SUAVES
