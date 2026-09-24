@@ -1,0 +1,167 @@
+# ranking.py
+from dataclasses import dataclass
+
+from LLM.reranker.category_classifier import (
+    clasificar_categoria
+)
+
+from LLM.reranker.bonus_calculator import (
+    calcular_bonus
+)
+
+
+@dataclass
+class ResultadoRanking:
+
+    documento: object
+
+    score_original: float
+
+    bonus: float
+
+    score_final: float
+
+    categoria: str
+
+    tipo_consulta: str
+
+
+def construir_ranking(
+    documentos,
+    scores,
+    tipo_consulta,
+    tipos_consulta,
+    documento_pregunta,
+    anio_pregunta
+):
+
+    ranking = []
+
+    for doc, score in zip(
+        documentos,
+        scores
+    ):
+
+        score_original = float(score)
+
+        categoria = clasificar_categoria(
+            doc
+        )
+
+        bonus_resultado = calcular_bonus(
+
+            doc=doc,
+
+            categoria=categoria["categoria"],
+
+            seccion=categoria["seccion"],
+
+            titulo_hijo=categoria["titulo_hijo"],
+
+            encabezado=categoria["encabezado"],
+
+            subtitulo=categoria["subtitulo"],
+
+            score_original=score_original,
+
+            tipo_consulta=tipo_consulta,
+
+            tipos_consulta=tipos_consulta,
+
+            documento_pregunta=documento_pregunta,
+
+            anio_pregunta=anio_pregunta
+
+        )
+
+        score_final = float(
+            bonus_resultado["score_final"]
+        )
+
+        bonus = (
+            score_final
+            - score_original
+        )
+
+        ranking.append(
+
+            ResultadoRanking(
+
+                documento=doc,
+
+                score_original=score_original,
+
+                bonus=bonus,
+
+                score_final=score_final,
+
+                categoria=categoria["categoria"],
+
+                tipo_consulta=tipo_consulta
+
+            )
+
+        )
+
+    print("\n================ RANKING ANTES DE ORDENAR ================\n")
+
+    for r in ranking:
+
+        print({
+
+            "pagina":
+                r.documento.metadata.get("pagina"),
+
+            "seccion":
+                r.documento.metadata.get("seccion"),
+
+            "titulo_hijo":
+                r.documento.metadata.get("titulo_hijo"),
+
+            "encabezado":
+                r.documento.metadata.get("encabezado_original"),
+
+            "score_original":
+                round(r.score_original, 4),
+
+            "bonus":
+                round(r.bonus, 4),
+
+            "score_final":
+                round(r.score_final, 4)
+
+        })
+
+    ranking.sort(
+
+        key=lambda resultado:
+            resultado.score_final,
+
+        reverse=True
+
+    )
+
+    print("\n================ RANKING FINAL ================\n")
+
+    for i, r in enumerate(ranking, 1):
+
+        print(
+
+            i,
+
+            {
+
+                "pagina":
+                    r.documento.metadata.get("pagina"),
+
+                "titulo_hijo":
+                    r.documento.metadata.get("titulo_hijo"),
+
+                "score":
+                    round(r.score_final, 4)
+
+            }
+
+        )
+
+    return ranking

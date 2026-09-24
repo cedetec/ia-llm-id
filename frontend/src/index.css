@@ -1,0 +1,9 @@
+/* frontend/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Puedes agregar estilos globales personalizados aquí */
+body {
+  @apply bg-gray-50 text-gray-800;
+}

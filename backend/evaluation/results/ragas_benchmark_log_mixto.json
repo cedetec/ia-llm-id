@@ -1,0 +1,13 @@
+[
+    {
+        "registro": 48,
+        "rag": "EMBEDDINGGEMMA",
+        "modelo": "deepseek-r1:8b",
+        "documento": "MULTIDOCUMENTO",
+        "pregunta": "¿Cuál es la diferencia entre el objetivo del concurso de acceso a embarcaciones para investigación científica de 2022, el de 2024 y el concurso de asignación de tiempo oceanográfico del Buque Cabo de Hornos de 2020?",
+        "metrica": "faithfulness",
+        "resultado": "ok",
+        "valor": 1.0,
+        "tiempo_s": 30.49
+    }
+]

@@ -1,0 +1,27 @@
+[
+    {
+        "id": "T1",
+        "pregunta": "¿Cómo se comparan los objetivos del concurso de acceso a embarcaciones para investigación científica de 2022 y 2024? Indique sus principales similitudes y diferencias.",
+        "objetivo": "Obtener y comprender las similitudes y diferencias entre los objetivos de las convocatorias de 2022 y 2024."
+    },
+    {
+        "id": "T2",
+        "pregunta": "¿Cómo se comparan el monto máximo de financiamiento y la duración de los proyectos establecidos en las convocatorias de acceso a embarcaciones para investigación científica de 2022 y 2024?",
+        "objetivo": "Identificar información de financiamiento y duración y compararla entre dos convocatorias."
+    },
+    {
+        "id": "T3",
+        "pregunta": "¿Qué diferencias existen entre los requisitos que deben cumplir los proyectos albergantes en las convocatorias de acceso a embarcaciones para investigación científica de 2022 y 2024?",
+        "objetivo": "Identificar diferencias específicas en los requisitos de los proyectos albergantes."
+    },
+    {
+        "id": "T4",
+        "pregunta": "¿Cómo se diferencian los requisitos relacionados con los proyectos albergantes entre los concursos de acceso a embarcaciones de 2022 y 2024 y el concurso de asignación de tiempo del Buque Cabo de Hornos de 2020?",
+        "objetivo": "Resolver una consulta que involucra tres documentos."
+    },
+    {
+        "id": "T5",
+        "pregunta": "Compare los concursos de los documentos de 2022, 2024 y 2020 considerando su objetivo, requisitos de postulación, condiciones de participación y características del financiamiento.",
+        "objetivo": "Realizar una comparación multidocumento integrando información de las tres convocatorias."
+    }
+]

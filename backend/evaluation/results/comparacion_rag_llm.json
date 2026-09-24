@@ -1,0 +1,1122 @@
+[
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": " El monto máximo de financiamiento es de $416.000.000 y la duración del proyecto es de 12 meses, contados a partir de la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6118569237105561
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": " El proyecto albergante debe tener una duración como mínimo hasta Junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5259788394174645
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "El proyecto albergante debe tener una duración como mínimo hasta junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5259788394174645
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": " El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": " El objetivo de investigación que debe justificar el uso del Buque Cabo de Hornos es aquel que sea imprescindible para la realización de investigación científica y tecnológica, y que no pueda realizarse utilizando otras embarcaciones existentes en Chile. (Objetivos específicos)",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6737282925319569
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": " El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.498321434001684
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "El objetivo de investigación debe justificar el uso del Buque Cabo de Hornos para facilitar la realización de investigación científica y tecnológica que sea imprescindible el acceso a esta plataforma, ya que no puede realizarse utilizando otras embarcaciones existentes en Chile. Además, se incentiva el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo que accederá al uso del Buque.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6218207312072145
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "El monto máximo de financiamiento es $416.000.000 (cuatrocientos dieciséis millones de pesos) y la duración del proyecto será de 12 meses, contado a partir de la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6607131998700979
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "El objetivo general es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5060529803974426
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "El proyecto albergante debe contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos. Además, debe ser un Proyecto Albergante, es decir, un Proyecto de Investigación Científica vigente hasta diciembre de 2023, financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia con la misma misión a la de ANID (CORFO, FIA, etc.).",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.4809765703132041
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "El objetivo general de la línea de financiamiento Uso de Buque es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5383777422547454
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "Las Instituciones postulantes deben cumplir con los siguientes requisitos básicos de admisibilidad:\n\n1. Coordinador(a) del proyecto debe ser un(a) investigador(a) chileno o extranjero con residencia en Chile y cumplir con la definición señalada en el punto 4 de estas bases.\n2. Presentación completa y correcta de los formularios provistos para la postulación.\n3. Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48573581785352293
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": " Los objetivos específicos del concurso son:\n1. Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n2. Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n3. Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": " El proyecto albergante debe cumplir los siguientes requisitos para postular al concurso:\n1. Debe ser un proyecto de Investigación Científica vigente, al menos, hasta diciembre de 2023.\n2. Debe estar financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia y/o programa con la misma misión a la de ANID (CORFO, FIA, etc.).\n3. Su duración debe ser como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.",
+        "metricas_ragas": {
+            "context_precision": 0.8055555555287036,
+            "context_recall": 1.0,
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.48028131345028574
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": " Las condiciones básicas de admisibilidad para la postulación son:\n1. El coordinador del proyecto es un investigador chileno o extranjero con residencia en Chile y cumple con la definición señalada en el punto 4 de estas bases.\n2. Presentación completa y correcta de los formularios provistos para la postulación.\n3. Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.\n4. Todo el personal de investigación, salvo estudiantes de pregrado, investigadores(as) deben cumplir con las condiciones establecidas en los puntos 1 y 2.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.6,
+            "answer_relevancy": 0.6172919858886114
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "Los objetivos específicos del concurso son:\n\n1. Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n2. Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n3. Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "ANID financiará a proyectos con un tope de $416.000.000 (cuatrocientos dieciséis millones de pesos). El proyecto tendrá una duración de 12 meses, contado a partir de la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6350904495664236
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "El objetivo de la línea de financiamiento Uso de Buque es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.544061019810736
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "Debe existir al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta Junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5358922040632778
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "Los objetivos específicos son:\n*   Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n*   Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n*   Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.45587554771177013
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "\nEl objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5204069289450922
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "\nEl monto máximo de financiamiento es $416.000.000 (cuatrocientos dieciséis millones de pesos), entregado en una única cuota a la Institución Beneficiaria.\n\nLa duración del proyecto será de 12 meses, contados a partir de la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6582285454973099
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "Una propuesta podrá ser declarada inadmisible en caso de que no cumpla con alguno de los siguientes requisitos básicos de admisibilidad:\n\n*   Coordinador(a) del proyecto es un(a) investigador(a) chileno o extranjero con residencia en Chile y cumple con la definición señalada en el punto 4 de estas bases.\n*   Presentación completa y correcta de los formularios provistos para la postulación.\n*   Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.\n*   Todo el personal de investigación, salvo estudiantes de pregrado, investigadores(as)...",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.8,
+            "answer_relevancy": 0.5717974007425344
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "\nEl objetivo de investigación que debe justificar el uso del Buque Cabo de Hornos es aquel que requiera la realización de actividades científicas y tecnológicas para las cuales sea imprescindible acceder a estas plataformas de equipamiento mayor, no pudiendo ser realizadas con embarcaciones existentes en Chile.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5894052868228803
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "\nEl objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento, siempre que este uso sea requerido para cumplir objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5206275820997388
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "Para postular al concurso, las Instituciones Beneficiarias deben cumplir con la definición dada en el punto 4 y presentar propuestas que cumplan con el concepto de Proyecto Albergante, con vigencia mínima hasta diciembre de 2023.\n\nAdemás, los proyectos albergantes deben contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos.\n\nSegún la definición de Proyecto Albergante, debe ser un Proyecto de Investigación Científica vigente, al menos, hasta diciembre de 2023, que se esté ejecutando al alero de la Institución Beneficiaria y que sea financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia y/o programa con la misma misión a la de ANID (CORFO, FIA, etc.).\n\nAdicionalmente, para la admisibilidad, se requiere la existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023.",
+        "metricas_ragas": {
+            "context_precision": NaN,
+            "context_recall": 1.0,
+            "faithfulness": NaN,
+            "answer_relevancy": 0.7233579743417744
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "\nLos objetivos específicos del concurso son:\n\n Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n\n Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de su participación activa dentro del equipo.\n\n Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "\nEl proyecto albergante debe tener una vigencia mínima hasta Junio del año 2021 proveniente de fondos públicos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": NaN,
+            "answer_relevancy": 0.541078157391762
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "\nEl proyecto albergante debe cumplir con los siguientes requisitos para postular al concurso:\n\n- Ser un Proyecto de Investigación Científica financiado por fondos públicos, ya sea a través de algún instrumento de ANID u otra agencia y/o programa con la misma misión que el de ANID.\n- Tener una vigencia mínima hasta diciembre del año 2023.",
+        "metricas_ragas": {
+            "context_precision": 0.8055555555287036,
+            "context_recall": 1.0,
+            "faithfulness": 0.6666666666666666,
+            "answer_relevancy": 0.48028131345028574
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "\nLas condiciones básicas de admisibilidad son:\n\n*   El Coordinador(a) del proyecto debe ser un investigador(a) chileno o extranjero con residencia en Chile y cumplir con la definición señalada en el punto 4.\n*   La presentación completa y correcta de los formularios provistos para la postulación.\n*   Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023.\n*   Todo el personal de investigación, salvo estudiantes de pregrado, debe estar integrado por investigadores(as) con publicaciones en revistas indexadas.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6183996546528686
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "La factibilidad se puede determinar a través de la revisión de las actividades y/o la necesidad de proponer ajustes, lo cual puede incluir la modificación en el número de personas permitido por proyecto, si existen razones pobremente fundamentadas para su presencia a bordo o restricciones de espacio que deban optimizarse entre proyectos.\n\nAdemás, en caso de proyectos con calificaciones iguales que no puedan ocupar simultáneamente el buque en las fechas de reserva y con financiamiento de esta misma institución, el Programa de Investigación Asociativa privilegiará los proyectos de acuerdo a los siguientes criterios de desempate:\n\na) Género: el proyecto con un mayor número de mujeres participantes (esto tiene en cuenta investigadoras, estudiantes, coordinadores, técnicos).\nb) Número de estudiantes que participan: el proyecto con mayor número de estudiantes participantes será seleccionado.\nc) Proyectos de investigadores en etapa temprana de su desarrollo: hace alusión a investigadores jóvenes que postulan a su primera campaña, frente a aquellos proyectos presentados por investigadores con experiencia.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.75,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5675337717814286
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "\nLa Comisión utiliza los siguientes criterios para determinar la factibilidad de los proyectos:\n\n*   La calidad e impacto de la actividad de difusión propuesta.\n*   El análisis de su factibilidad, que incluye verificar si las actividades pueden realizarse y optimizar el espacio entre proyectos.\n\nSolo aquellos proyectos cuya factibilidad sea confirmada ingresan al proceso de evaluación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.75,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.610021378622115
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": " El concurso es organizado por la Institución Nacional de Investigación Científica y Tecnológica (ANID) a través del programa de Investigación Asociativa.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6666666666666666,
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.5277833883591212
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "No encontré esa información...",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6666666666666666,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.0
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "No encontré esa información...",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6666666666666666,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.0
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "\nEl concurso es organizado por **ANID** (Agencia Nacional de Investigación y Desarrollo) a través del **Programa de Investigación Asociativa**, como se menciona en el documento bajo la sección \"TERMINO_PROYECTO\" y específicamente en el punto 10. PROCESO DE POSTULACIÓN, donde ANID indica que las postulaciones se realizan siguiendo sus instrucciones y documentos disponibles en su sitio web.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6666666666666666,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5120587356438769
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "Según el documento, la Comisión utilizará los siguientes criterios para determinar la factibilidad de los proyectos:\n\n1. Calidad e impacto de la actividad de difusión propuesta (representa un 10% del puntaje).\n\n2. Factibilidad de realizar las respectivas actividades y/o necesidad de proponer ajustes para las mismas, lo cual puede incluir:\n   - Modificación en el número de personas permitido por proyecto.\n   - Ajuste debido a razones pobremente fundamentadas para la presencia a bordo.\n   - Optimización del espacio entre proyectos si existen restricciones.\n\nEstos criterios permitirán determinar si un proyecto es factible y, en caso contrario, se comunicará a los coordinadores vía electrónica.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.594212203689482
+        }
+    },
+    {
+        "rag": "NOMIC",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": " Los criterios utilizados por la Comisión para determinar la factibilidad de los proyectos son los siguientes:\n\n10%\nCalidad e impacto de la actividad de difusión propuesta\nDe acuerdo a esta revisión se podrá determinar la factibilidad de realizar las respectivas\nactividades y/o la necesidad de proponer ajustes para las mismas, las que pueden incluir\nmodificación en el número de personas permitido por proyecto, en el caso de existir\nrazones pobremente fundamentadas para su presencia a bordo o bien por restricciones de\nespacio el cual deba optimizarse entre proyectos. Solamente aquellos proyectos cuya\nfactibilidad sea confirmada entrarán al proceso de evaluación. (Documento 1, página 5)\n\nEn el presente concurso no está predefinido si la ruta a utilizarse es desde Valparaíso a la zona sur o desde Valparaíso a la zona norte, esto se definirá teniendo en cuenta la demanda, la factibilidad y los criterios de desempate. (Documento 2, página 3)\n\nEn caso de proyectos con calificaciones iguales que por razones de espacio no puedan ocupar simultáneamente el buque en las fechas de reserva de ANID y con financiamiento de esta misma institución, el Programa de Investigación Asociativa privilegiará los proyectos de acuerdo a los siguientes criterios de desempate:\na)   Género: el proyecto con un mayor número de mujeres participantes (esto tiene en cuenta investigadores, estudiantes, coordinadores, técnicos). (Documento 3, página 5 y Documento 4, página 3)",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.6,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.0
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "Para postular al concurso, las Instituciones Beneficiarias deben cumplir con la definición dada en el punto 4 y presentar propuestas que cumplan con el concepto de Proyecto Albergante, con vigencia mínima hasta diciembre de 2023.\n\nAdemás, los proyectos albergantes deben contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos.\n\nSegún la definición de Proyecto Albergante, debe ser un Proyecto de Investigación Científica vigente, al menos, hasta diciembre de 2023, que se esté ejecutando al alero de la Institución Beneficiaria y que sea financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia y/o programa con la misma misión a la de ANID (CORFO, FIA, etc.).\n\nAdicionalmente, para la admisibilidad, se requiere la existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023.",
+        "metricas_ragas": {
+            "context_precision": NaN,
+            "context_recall": NaN,
+            "faithfulness": NaN,
+            "answer_relevancy": 0.7233579743417744
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": " El concurso es organizado por ANID (Agencia Nacional de Investigación y Desarrollo) a través del Programa de Investigación Asociativa (PIA).",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5275098356154378
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": " El monto máximo de financiamiento es de $416.000.000 y la duración del proyecto es de 12 meses.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.627483561954208
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "El concurso es organizado por ANID, a través del Programa de Investigación Asociativa (PIA).",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5275098356154378
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": " El proyecto albergante debe tener una duración como mínimo hasta Junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.543825606094386
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "El proyecto albergante debe tener una duración como mínimo hasta Junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5527489894328467
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": " El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": " El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.498321434001684
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": " El objetivo de investigación que debe justificar el uso del Buque Cabo de Hornos es aquel que sea imprescindible para la realización de investigación científica y tecnológica, y que no pueda realizarse utilizando otras embarcaciones existentes en Chile. (Objetivos específicos)",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.6741688937196252
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "El objetivo de investigación debe justificar el uso del Buque Cabo de Hornos para aquellas actividades que requieran la toma de muestras, instalación de equipos y boyas, experimentos en terreno y otras actividades enmarcadas dentro de cualquier disciplina del conocimiento que así lo requiera. Específicamente, se busca facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el acceso a estas plataformas de equipamiento mayor y que no puede realizarse utilizando otras embarcaciones existentes en Chile.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5325380018430018
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "El monto máximo de financiamiento es de $416.000.000 (cuatrocientos dieciséis millones de pesos), y la duración del proyecto es de 12 meses, contado a partir de la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6607131998700979
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "El proyecto albergante debe contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos. Además, debe ser un Proyecto Albergante, es decir, un Proyecto de Investigación Científica vigente hasta diciembre de 2023, financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia con la misma misión a la de ANID (CORFO, FIA, etc.).",
+        "metricas_ragas": {
+            "context_precision": 0.8055555555287036,
+            "context_recall": 1.0,
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.4809765703132041
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "El objetivo general de la línea de financiamiento Uso de Buque es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5383777422547454
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "ANID abre este concurso a través del Programa de Investigación Asociativa (PIA).",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.40892065737773503
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "El objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "El objetivo general de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.45679929686213444
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": " El proyecto albergante debe cumplir los siguientes requisitos para postular al concurso:\n1. Debe ser un proyecto de Investigación Científica vigente, al menos, hasta diciembre de 2023.\n2. Debe estar financiado por fondos públicos, ya sea por algún instrumento de ANID u otra agencia y/o programa con la misma misión a la de ANID (CORFO, FIA, etc.).\n3. Su duración debe ser como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.",
+        "metricas_ragas": {
+            "context_precision": 0.8055555555287036,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48028131345028574
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": " Los objetivos específicos del concurso son:\n1. Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n2. Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n3. Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "Los objetivos específicos del concurso son:\n\n1. Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n2. Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n3. Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "Las Instituciones postulantes deben cumplir con los siguientes requisitos básicos de admisibilidad:\n\n1. Coordinador(a) del proyecto debe ser un(a) investigador(a) chileno o extranjero con residencia en Chile y cumplir con la definición señalada en el punto 4 de estas bases.\n2. Presentación completa y correcta de los formularios provistos para la postulación.\n3. Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48573581785352293
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "El proyecto albergante debe tener una duración como mínimo hasta Junio del año 2021.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5527489894328467
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": " Las condiciones básicas de admisibilidad para la postulación son:\n1. El coordinador del proyecto es un investigador chileno o extranjero con residencia en Chile y cumple con la definición señalada en el punto 4 de estas bases.\n2. Presentación completa y correcta de los formularios provistos para la postulación.\n3. Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.\n4. Todo el personal de investigación, salvo estudiantes de pregrado, investigadores extranjeros invitados y técnicos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.64201612414332
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "Los objetivos específicos son:\n\n*   Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n*   Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso de la embarcación.\n*   Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares a los cuales podrá invitarse a acceder a la embarcación.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.45587554771177013
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+        "respuesta": "\nANID organiza el concurso a través del Programa de Investigación Asociativa (PIA).",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 0.3333333333333333,
+            "answer_relevancy": 0.5275098356154378
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "ANID financiará a proyectos con un tope de $416.000.000 (cuatrocientos dieciséis millones de pesos). El proyecto tendrá una duración de 12 meses.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6174457596439485
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "respuesta": "\nEl objetivo general del concurso es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5204069289450922
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "Las propuestas podrán ser declaradas inadmisibles en caso de que no cumplan con alguno de los siguientes requisitos básicos de admisibilidad:\n\n*   Coordinador(a) del proyecto es un(a) investigador(a) chileno o extranjero con residencia en Chile y cumple con la definición señalada en el punto 4 de estas bases.\n*   Presentación completa y correcta de los formularios provistos para la postulación.\n*   Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, de tal manera que se garantice el procesamiento de la información y muestras obtenidas durante el crucero, dentro del período de vigencia del proyecto albergante.\n*   Todo el personal de investigación, salvo estudiantes de pregrado, investigadores(as) extranjeros(as) invitados(as) y técnicos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5717974007425344
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "El objetivo de la línea de financiamiento Uso de Buque es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.\n\nLos objetivos específicos son:\n*   Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el acceso a estas plataformas de equipamiento mayor y que no puede realizarse utilizando otras embarcaciones existentes en Chile.\n*   Incentivar el entrenamiento de investigadores (as) recientemente formados y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de la participación activa dentro del equipo de personas que accederá al uso del Buque.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.544061019810736
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el objetivo general del concurso?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+        "respuesta": "\nEl objetivo general del concurso es apoyar el desarrollo de proyectos de investigación con financiamiento público vigente en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5684321870600643
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "respuesta": "\nLos objetivos específicos del concurso son:\n\n Facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones.\n\n Incentivar el entrenamiento de investigadores(as) recientemente formados(as) y la formación de estudiantes de pre y postgrado que estén incluidos o se incluyan en el proyecto albergante, a través de su participación activa dentro del equipo.\n\n Promover el establecimiento de redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48309754454583115
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+        "respuesta": "\nEl proyecto albergante debe tener una duración mínima hasta **Junio del 2021**.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5178673182797185
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+        "respuesta": "\nEl monto máximo de financiamiento es de $416.000.000 (cuatrocientos dieciséis millones de pesos) y la duración del proyecto será de 12 meses, contado a partir de la fecha de tramitación del acto administrativo que apruebe el convenio de ejecución.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6426107390254551
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+        "respuesta": "\nPara la postulación se exigen las siguientes condiciones básicas de admisibilidad:\n\n8.a. Coordinador(a) del proyecto es un (a) investigador(a) chileno o extranjero con residencia en Chile y cumple con la definición señalada en el punto 4.\n8.b. Presentación completa y correcta de los formularios provistos para la postulación.\n8.c. Existencia de al menos un proyecto albergante proveniente de fondos públicos cuya duración sea como mínimo hasta diciembre del año 2023, garantizando el procesamiento de información durante su vigencia.\n\nAdemás, se requiere que todo el personal de investigación (salvo estudiantes de pregrado) cumpla con las especificaciones detalladas en los documentos adjuntos.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6427118331600484
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "respuesta_referencia": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+        "respuesta": "\nEl proyecto albergante debe cumplir con los siguientes requisitos para postular al concurso:\n\n- Ser un Proyecto de Investigación Científica financiado por fondos públicos, ya sea a través de algún instrumento de ANID u otra agencia y/o programa con la misma misión que el de ANID.\n- Tener una vigencia mínima hasta diciembre del año 2023.",
+        "metricas_ragas": {
+            "context_precision": 0.8055555555287036,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.48028131345028574
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "\nLa Comisión utiliza los siguientes criterios para determinar la factibilidad de los proyectos:\n\n*   Disponibilidad de espacios y tiempos reservados por ANID en Cabo de Hornos, lugares, número de personas, rutas a seguir, exigencias logísticas y pertinencia de las actividades al uso del Buque AGS 61 Cabo de Hornos versus otras embarcaciones.\n*   Evaluación de la factibilidad considerando la metodología, las facilidades e instrumental del buque, el instrumental que el equipo traerá consigo a bordo, y las capacidades y competencias del equipo.\n*   Criterio de desempate basado en:\n    *   Género: Mayor número total de mujeres participantes (investigadoras, estudiantes, coordinadora, técnicos).\n    *   Número de estudiantes que participan.\n    *   Proyectos presentados por investigadores jóvenes frente a aquellos con experiencia.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5907784557508138
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "deepseek-r1:8b",
+        "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+        "respuesta": "\nEl objetivo de investigación que debe justificar el uso del Buque Cabo de Hornos es aquel que requiera la realización de actividades científicas y tecnológicas para las cuales sea imprescindible acceder a estas plataformas de equipamiento mayor, y que no pueda realizarse utilizando otras embarcaciones existentes en Chile.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5875378654634748
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "qwen2.5:latest",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "La Comisión evalúa la factibilidad de los proyectos considerando la disponibilidad de espacios y tiempos reservados por ANID en el Cabo de Hornos, así como los lugares, número de personas, rutas a seguir, exigencias logísticas de los respectivos proyectos y pertinencia de las actividades al uso del Buque AGS 61 Cabo de Hornos versus otras embarcaciones. Además, se evalúa la calidad de la propuesta a realizar a bordo del Cabo de Hornos, incluyendo la claridad y precisión de los objetivos de la propuesta, la metodología, las facilidades e instrumental del buque, el instrumental que el equipo traerá consigo a bordo, así como las capacidades y competencias del equipo que subirá a bordo.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.5,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5336778574267288
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "mistral:latest",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": " La Comisión utiliza los siguientes criterios para determinar la factibilidad de los proyectos:\n1. Evaluación de la disponibilidad de espacios y tiempos reservados por ANID en el Cabo de Hornos, así como los lugares, N° de personas, rutas a seguir, exigencias logísticas de los respectivos proyectos y pertinencia de las actividades al uso del Buque AGS 61 Cabo de Hornos versus otras embarcaciones.\n2. Se evalúa aquí tanto la factibilidad como el riesgo de realizar las actividades indicadas en el Plan de Trabajo de la propuesta considerando la metodología, las facilidades e instrumental del buque, el instrumental que el equipo traerá consigo a bordo, las capacidades y competencias del equipo que subirá a bordo.\n3. Calidad de la propuesta a realizar a bordo del Cabo de Hornos. Se incluyen en este criterio aspectos tales como la claridad y precisión de los objetivos de la propuesta, el valor científico y tecnológico de la investigación, la relevancia de las actividades para el conocimiento o la solución de problemas relacionados con el mar y la tierra.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.5,
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5907784557508138
+        }
+    },
+    {
+        "rag": "EMBEDDINGGEMMA",
+        "modelo_llm": "gemma4:e2b",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "respuesta_referencia": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+        "respuesta": "La Comisión revisará la disponibilidad de espacios y tiempos reservados por ANID en el Cabo de Hornos, así como los lugares, número de personas, rutas a seguir, exigencias logísticas de los respectivos proyectos y pertinencia de las actividades al uso del Buque AGS 61 Cabo de Hornos versus otras embarcaciones.\n\nAdemás, se evalúa tanto la factibilidad como el riesgo de realizar las actividades indicadas en el Plan de Trabajo de la propuesta considerando la metodología, las facilidades e instrumental del buque, el instrumental que el equipo traerá consigo a bordo, las capacidades y competencias del equipo que subirá a bordo.",
+        "metricas_ragas": {
+            "context_precision": 0.999999999975,
+            "context_recall": 0.5,
+            "faithfulness": NaN,
+            "answer_relevancy": 0.5370242481877837
+        }
+    }
+]

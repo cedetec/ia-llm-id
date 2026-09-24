@@ -1,0 +1,70 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+
+
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST}"
+      MONGODB_URI: "${MONGODB_URI}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE}"
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY}"
+      CORS_ORIGINS: "${CORS_ORIGINS}"
+
+    volumes:
+      - ./backend/data:/app/data
+
+    networks:
+      - rag_network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8000/health || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: "${VITE_API_URL}"
+
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    ports:
+      - "${FRONTEND_PORT}:80"
+
+    networks:
+      - rag_network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost/ || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+
+networks:
+  rag_network:
+    external: true
+    name: tesis-2026_rag_network

@@ -1,0 +1,124 @@
+
+services:
+
+  backend:
+
+    build:
+      context: ./backend
+
+
+    depends_on:
+      - ollama
+      - mongodb
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY:-False}"
+
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173}"
+
+    volumes:
+      - ./backend:/app
+
+    networks:
+      - rag_network
+
+    restart: unless-stopped
+
+    stdin_open: true
+
+    tty: true
+
+
+  frontend:
+
+    build:
+      context: ./frontend
+
+
+    depends_on:
+      - backend
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:8000}"
+
+    networks:
+      - rag_network
+
+
+  ollama:
+
+    image: ollama/ollama:latest
+
+
+    ports:
+      - "11434:11434"
+
+    shm_size: "4gb"
+
+    volumes:
+      - ollama_data:/root/.ollama
+
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "5m"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+
+    restart: unless-stopped
+
+    networks:
+      - rag_network
+
+
+  mongodb:
+
+    image: mongo:7
+
+
+    ports:
+      - "27017:27017"
+
+    restart: unless-stopped
+
+    volumes:
+      - mongodb_data:/data/db
+
+    networks:
+      - rag_network
+
+
+volumes:
+
+  ollama_data:
+
+  mongodb_data:
+
+
+networks:
+
+  rag_network:
+    driver: bridge

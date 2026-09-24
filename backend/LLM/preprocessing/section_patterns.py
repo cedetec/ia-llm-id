@@ -1,0 +1,105 @@
+# LLM/preprocessing/section_patterns.py
+
+import re
+
+from LLM.preprocessing.section_constants import *
+
+from LLM.preprocessing.section_regex import (
+
+    OBJETIVOS as RX_OBJETIVOS,
+    OBJETIVO_GENERAL as RX_OBJETIVO_GENERAL,
+    OBJETIVOS_ESPECIFICOS as RX_OBJETIVOS_ESPECIFICOS,
+    PROPOSITO as RX_PROPOSITO,
+    POSTULANTES as RX_POSTULANTES,
+    REQUISITOS as RX_REQUISITOS,
+    FINANCIAMIENTO as RX_FINANCIAMIENTO,
+    EVALUACION as RX_EVALUACION,
+    BENEFICIOS as RX_BENEFICIOS,
+    INTRODUCCION as RX_INTRODUCCION,
+    DEFINICIONES as RX_DEFINICIONES,
+    RESULTADOS as RX_RESULTADOS,
+    CRITERIOS as RX_CRITERIOS,
+    GLOSARIO as RX_GLOSARIO,
+    ANEXOS as RX_ANEXOS,
+    FIRMA_CONVENIOS as RX_FIRMA_CONVENIOS,
+    MODIFICACIONES as RX_MODIFICACIONES,
+    TERMINO_PROYECTO as RX_TERMINO_PROYECTO,
+    ADJUDICACION as RX_ADJUDICACION,
+    LISTA_ESPERA as RX_LISTA_ESPERA
+
+)
+
+from LLM.preprocessing.anid_section_patterns import (
+    PATRONES_ANID
+)
+
+
+def patron(regex):
+
+    return re.compile(
+
+        rf"""
+        ^\s*
+        {NUMERACION}
+        \s*
+        ({regex})
+        (?:\s+.*)?
+        $
+        """,
+
+        re.IGNORECASE | re.VERBOSE
+
+    )
+
+
+PATRONES_SECCION = [
+
+    (patron(RX_OBJETIVO_GENERAL), OBJETIVO_GENERAL),
+
+    (patron(RX_OBJETIVOS_ESPECIFICOS), OBJETIVOS_ESPECIFICOS),
+
+    (patron(RX_PROPOSITO), PROPOSITO_CONVOCATORIA),
+
+    (patron(RX_OBJETIVOS), OBJETIVOS),
+
+    (patron(RX_POSTULANTES), POSTULANTES),
+
+    (patron(RX_REQUISITOS), REQUISITOS),
+
+    (patron(RX_FINANCIAMIENTO), FINANCIAMIENTO),
+
+    (patron(RX_EVALUACION), EVALUACION),
+
+    (patron(RX_BENEFICIOS), BENEFICIOS),
+
+    (patron(RX_INTRODUCCION), INTRODUCCION),
+
+    (patron(RX_DEFINICIONES), DEFINICIONES),
+
+    (patron(RX_RESULTADOS), RESULTADOS_ESPERADOS),
+
+    (patron(RX_CRITERIOS), CRITERIOS),
+
+    (patron(RX_GLOSARIO), GLOSARIO),
+
+    (patron(RX_ANEXOS), ANEXOS),
+
+    (patron(RX_FIRMA_CONVENIOS), FIRMA_CONVENIOS),
+
+    (patron(RX_MODIFICACIONES), MODIFICACIONES),
+
+    (patron(RX_TERMINO_PROYECTO), TERMINO_PROYECTO),
+
+    (patron(RX_ADJUDICACION), ADJUDICACION),
+
+    (patron(RX_LISTA_ESPERA), LISTA_ESPERA),
+
+]
+
+#
+# Patrones específicos ANID
+#
+
+PATRONES_SECCION.extend(
+    PATRONES_ANID
+)

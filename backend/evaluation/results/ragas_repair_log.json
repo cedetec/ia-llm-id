@@ -1,0 +1,72 @@
+[
+    {
+        "registro": 28,
+        "rag": "NOMIC",
+        "modelo": "gemma4:e2b",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "metrica": "faithfulness",
+        "resultado": "reparada",
+        "valor": 1.0
+    },
+    {
+        "registro": 28,
+        "rag": "NOMIC",
+        "modelo": "gemma4:e2b",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "metrica": "context_precision",
+        "resultado": "reparada",
+        "valor": 0.999999999975
+    },
+    {
+        "registro": 30,
+        "rag": "NOMIC",
+        "modelo": "deepseek-r1:8b",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+        "metrica": "faithfulness",
+        "resultado": "error_parser",
+        "error": "The output parser failed to parse the output including retries."
+    },
+    {
+        "registro": 41,
+        "rag": "EMBEDDINGGEMMA",
+        "modelo": "gemma4:e2b",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "metrica": "faithfulness",
+        "resultado": "reparada",
+        "valor": 1.0
+    },
+    {
+        "registro": 41,
+        "rag": "EMBEDDINGGEMMA",
+        "modelo": "gemma4:e2b",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "metrica": "context_precision",
+        "resultado": "reparada",
+        "valor": 0.999999999975
+    },
+    {
+        "registro": 41,
+        "rag": "EMBEDDINGGEMMA",
+        "modelo": "gemma4:e2b",
+        "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+        "metrica": "context_recall",
+        "resultado": "reparada",
+        "valor": 1.0
+    },
+    {
+        "registro": 80,
+        "rag": "EMBEDDINGGEMMA",
+        "modelo": "gemma4:e2b",
+        "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+        "metrica": "faithfulness",
+        "resultado": "error_parser",
+        "error": "The output parser failed to parse the output including retries."
+    }
+]
