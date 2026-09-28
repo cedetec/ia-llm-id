@@ -1,5 +1,9 @@
 # LLM/response/response_generation_service.py
 
+from LLM.validators.llm_validator import (
+    validar_llm
+)
+
 from LLM.translators.translation_policy import (
     usar_traduccion
 )
@@ -8,115 +12,85 @@ from LLM.translators.argos_translator import (
     translator
 )
 
-from LLM.evaluation.ragas_metrics import (
-    RagasMetrics
-)
 
-
-def generar_respuesta(
-
-    rag_chain,
-
+def procesar_respuesta(
+    resultado_rag,
     pregunta,
-
+    respuesta_llm,
     referencia=None,
-
     calcular_ragas=False
-
 ):
 
     #
-    # Traducir solo si el modelo lo requiere.
+    # =====================================================
+    # Datos provenientes del RAG
+    # =====================================================
     #
 
-    if usar_traduccion():
+    contexto = resultado_rag.get(
+        "context_text",
+        ""
+    )
 
-        pregunta_llm = translator.es_a_en(
-            pregunta
-        )
-
-    else:
-
-        pregunta_llm = pregunta
-
-    print(
-
-        "[LLM QUESTION]",
-
-        pregunta_llm
-
+    contextos_ragas = resultado_rag.get(
+        "contextos_ragas",
+        []
     )
 
     #
-    # Ejecutar el RAG usando la pregunta correspondiente.
+    # =====================================================
+    # Respuesta generada por Ollama
+    # =====================================================
     #
 
-    respuesta = rag_chain.invoke(
-
-        pregunta_llm
-
-    )
-
-    print("\n================ MODELO ACTUAL ================\n")
-
-    try:
-
-        print(
-            "LLM object:",
-            rag_chain.llm
-        )
-
-        print(
-            "LLM model:",
-            getattr(
-                rag_chain.llm,
-                "model",
-                "NO DISPONIBLE"
-            )
-        )
-
-    except Exception as e:
-
-        print(
-            "[MODEL DEBUG ERROR]",
-            repr(e)
-        )
+    texto_respuesta = respuesta_llm.content
 
     print(
-        "\n================ RESPUESTA GENERADA ================\n"
+        "\n================ RESPUESTA DE OLLAMA ================\n"
     )
 
     print(
-        respuesta["answer"]
+        texto_respuesta
     )
 
     #
-    # Traducir la respuesta nuevamente al español
-    # solo cuando corresponda.
+    # =====================================================
+    # Traducción de salida
+    # =====================================================
     #
 
     if usar_traduccion():
 
         print(
             "[ANTES TRADUCCION]",
-            respuesta["answer"]
+            texto_respuesta
         )
 
-        respuesta["answer"] = translator.en_a_es(
-            respuesta["answer"]
+        texto_respuesta = translator.en_a_es(
+            texto_respuesta
         )
 
         print(
             "[DESPUES TRADUCCION]",
-            respuesta["answer"]
+            texto_respuesta
         )
 
     #
-    # Métricas RAGAS.
+    # =====================================================
+    # Validación
+    # =====================================================
     #
-    # Por defecto NO se calculan durante /chat.
-    # Se habilitan solamente desde el flujo
-    # de evaluación dedicado usando calcular_ragas=True.
+
+    validar_llm(
+        pregunta,
+        contexto,
+        texto_respuesta
+    )
+
+    #
+    # =====================================================
+    # RAGAS
+    # =====================================================
     #
 
     metricas_ragas = {
@@ -139,23 +113,19 @@ def generar_respuesta(
 
         try:
 
-            ragas = RagasMetrics()
-
-            contextos = respuesta.get(
-                "contextos_ragas",
-                respuesta.get(
-                    "context",
-                    []
-                )
+            from LLM.evaluation.ragas_metrics import (
+                RagasMetrics
             )
+
+            ragas = RagasMetrics()
 
             metricas_ragas = ragas.evaluar(
 
                 pregunta=pregunta,
 
-                respuesta=respuesta["answer"],
+                respuesta=texto_respuesta,
 
-                contextos=contextos,
+                contextos=contextos_ragas,
 
                 referencia=referencia
 
@@ -197,104 +167,34 @@ def generar_respuesta(
             )
 
     #
-    # Exponer las métricas RAGAS en la respuesta.
+    # =====================================================
+    # Resultado final
+    # =====================================================
     #
 
-    respuesta["ragas"] = metricas_ragas
-
-    print(
-        "[RAG]",
-        {
-            "chunks": len(
-                respuesta["context"]
-            )
-        }
+    resultado = dict(
+        resultado_rag
     )
 
-    for i, doc in enumerate(
-        respuesta["context"]
-    ):
+    resultado["answer"] = texto_respuesta
 
-        print(
-            "[RAG CHUNK]",
-            {
-                "pagina": doc.metadata.get(
-                    "pagina"
-                ),
+    resultado["ragas"] = metricas_ragas
 
-                "longitud": len(
-                    doc.page_content
-                )
-            }
-        )
+    return resultado
 
-    for i, doc in enumerate(
-        respuesta["context"]
-    ):
 
-        print("=" * 80)
+def generar_respuesta(
+    resultado_rag,
+    pregunta,
+    respuesta_llm,
+    referencia=None,
+    calcular_ragas=False
+):
 
-        print(
-            f"Documento {i}"
-        )
-
-        print(
-            "Documento:",
-            doc.metadata.get(
-                "documento"
-            )
-        )
-
-        print(
-            "Página:",
-            doc.metadata.get(
-                "pagina"
-            )
-        )
-
-        print(
-            "Longitud:",
-            len(
-                doc.page_content
-            )
-        )
-
-        for campo in (
-
-            "seccion",
-
-            "titulo_padre",
-
-            "titulo_hijo",
-
-            "subtitulo"
-
-        ):
-
-            if not doc.metadata.get(campo):
-
-                print(
-                    f"[WARNING] {campo} vacío"
-                )
-
-        if not doc.page_content.strip():
-
-            print(
-                "[WARNING] Chunk vacío."
-            )
-
-        print("\nContenido:\n")
-
-        print(
-            doc.page_content
-        )
-
-    print(
-        "\n================ RESPUESTA DEL LLM ================\n"
+    return procesar_respuesta(
+        resultado_rag=resultado_rag,
+        pregunta=pregunta,
+        respuesta_llm=respuesta_llm,
+        referencia=referencia,
+        calcular_ragas=calcular_ragas
     )
-
-    print(
-        respuesta["answer"]
-    )
-
-    return respuesta
