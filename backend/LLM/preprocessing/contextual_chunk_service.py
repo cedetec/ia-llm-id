@@ -1,31 +1,31 @@
 # LLM/preprocessing/contextual_chunk_service.py
 
-from LLM.preprocessing.section_detector import (
+from Preprocesamiento.preprocessing.section_detector import (
     obtener_titulo_padre
 )
 
-from LLM.preprocessing.heading_classifier import (
+from Preprocesamiento.preprocessing.heading_classifier import (
     parece_encabezado
 )
 
-from LLM.preprocessing.section_keywords import (
+from Preprocesamiento.preprocessing.section_keywords import (
     PALABRAS_CLAVE
 )
 
-from LLM.preprocessing.embedding_builder import (
+from Preprocesamiento.preprocessing.embedding_builder import (
     construir_texto_embedding
 )
 
-from LLM.preprocessing.section_constants import (
+from Preprocesamiento.preprocessing.section_constants import (
     GENERAL
 )
 
-from LLM.rag.context_patterns import (
+from RAG.rag.context_patterns import (
     PATRONES_ENCABEZADO_OBJETIVO_GENERAL,
     PATRONES_ENCABEZADO_OBJETIVOS_ESPECIFICOS
 )
 
-from LLM.rag.context_categories import (
+from RAG.rag.context_categories import (
     CATEGORIAS_VALIDAS
 )
 
@@ -153,15 +153,6 @@ def enriquecer_chunks(fragmentos):
             doc.metadata.get("encabezado_original")
             or ""
         )
-
-        print("=" * 80)
-        print("[ANTES DE ENRIQUECER]")
-        print("Documento:", doc.metadata.get("documento"))
-        print("Página:", doc.metadata.get("pagina"))
-        print("Sección:", doc.metadata.get("seccion"))
-        print("Título hijo:", doc.metadata.get("titulo_hijo"))
-        print("Encabezado:", doc.metadata.get("encabezado_original"))
-        print(doc.page_content[:300])
 
         seccion = (
             doc.metadata.get("seccion")
@@ -423,26 +414,6 @@ def enriquecer_chunks(fragmentos):
                     }
 
                 )
-
-        print(
-
-            "[DEBUG METADATA FINAL]",
-
-            {
-
-                "seccion": seccion,
-
-                "titulo_padre": doc.metadata.get("titulo_padre"),
-
-                "titulo_hijo": doc.metadata.get("titulo_hijo"),
-
-                "subtitulo": doc.metadata.get("subtitulo"),
-
-                "encabezado": doc.metadata.get("encabezado_original")
-
-            }
-
-        )
 
         #
         # Evitar doble enriquecimiento
