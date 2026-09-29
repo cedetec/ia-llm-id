@@ -5,13 +5,13 @@ from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from LLM.embeddings.embedding_service import crear_embeddings
-from LLM.vectorstore.chroma_service import (
+from RAG.embeddings.embedding_service import crear_embeddings
+from RAG.vectorstore.chroma_service import (
     crear_vectorstore,
     agregar_documentos_vectorstore,
 )
 
-from LLM.preprocessing.preprocessing_pipeline import (
+from Preprocesamiento.preprocessing.preprocessing_pipeline import (
     preprocesar_documentos
 )
 
@@ -19,12 +19,12 @@ from app.database.document_repository import (
     guardar_documento
 )
 
-from LLM.config.vectorstore_settings import (
+from RAG.config.vectorstore_settings import (
     NOMIC_COLLECTION,
     GEMMA_COLLECTION,
 )
 
-from LLM.config.embedding_settings import (
+from RAG.config.embedding_settings import (
     DEFAULT_EMBEDDING_MODEL,
     EMBEDDING_GEMMA_MODEL
 )
@@ -125,43 +125,6 @@ def _guardar_documentos_indexados(fragmentos):
     return contador_chunks
 
 
-def _mostrar_estadisticas(fragmentos):
-
-    contador_secciones = Counter()
-
-    contador_titulos = Counter()
-
-    for doc in fragmentos:
-
-        contador_secciones[
-            doc.metadata.get(
-                "seccion",
-                ""
-            )
-        ] += 1
-
-        contador_titulos[
-            doc.metadata.get(
-                "titulo_hijo",
-                ""
-            )
-        ] += 1
-
-    print(
-        "\n================ SECCIONES INDEXADAS ================\n"
-    )
-
-    for nombre, cantidad in contador_secciones.most_common():
-
-        print(f"{nombre:<35} {cantidad}")
-
-    print(
-        "\n================ TITULOS HIJO ================\n"
-    )
-
-    for nombre, cantidad in contador_titulos.most_common():
-
-        print(f"{nombre:<35} {cantidad}")
 
 
 def _crear_indice(
@@ -209,10 +172,6 @@ def _agregar_al_indice(
 
 def indexar_documentos():
 
-    print("=" * 80)
-    print("VERSION NUEVA DE INDEXING_SERVICE")
-    print("=" * 80)
-
     documentos = cargar_pdfs_seguro(
         PDF_DIR
     )
@@ -225,9 +184,6 @@ def indexar_documentos():
         fragmentos
     )
 
-    _mostrar_estadisticas(
-        fragmentos
-    )
 
     _crear_indice(
         fragmentos,
