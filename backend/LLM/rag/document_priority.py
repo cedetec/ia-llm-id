@@ -1,10 +1,10 @@
 # document_priority.py
 
-from LLM.rag.context_utils import (
+from RAG.rag.context_utils import (
     es_objetivo_general
 )
 
-from LLM.rag.context_patterns import (
+from RAG.rag.context_patterns import (
 
     PATRONES_OBJETIVO_GENERAL,
 
@@ -160,26 +160,6 @@ def calcular_prioridad(
     ):
 
         score -= PENALIZACION_ADMINISTRATIVA
-
-    print(
-
-        "[PRIORIDAD]",
-
-        {
-
-            "pagina": doc.metadata.get("pagina"),
-
-            "titulo": titulo_hijo,
-
-            "seccion": seccion,
-
-            "subtitulo": subtitulo,
-
-            "score": score
-
-        }
-
-    )
 
     return score
 
