@@ -1,26 +1,22 @@
 # startup_service.py
 
-from LLM.embeddings.embedding_service import (
+from RAG.embeddings.embedding_service import (
     crear_embeddings
 )
 
-from LLM.vectorstore.chroma_service import (
+from RAG.vectorstore.chroma_service import (
     cargar_vectorstore
 )
 
-from LLM.retriever.retrieval_service import (
+from RAG.retriever.retrieval_service import (
     crear_retriever
 )
 
-from LLM.llm.ollama_client import (
-    crear_llm
-)
-
-from LLM.rag.rag_service import (
+from RAG.rag.rag_service import (
     construir_rag
 )
 
-from LLM.config.embedding_settings import (
+from RAG.config.embedding_settings import (
     DEFAULT_EMBEDDING_MODEL
 )
 
@@ -70,26 +66,10 @@ def crear_rag_service(
         vectorstore._collection.count()
     )
 
-    datos = vectorstore.get(
-        include=["metadatas"]
-    )
-
-    print(
-        "Metadatas:",
-        len(datos["metadatas"])
-    )
-
-    for md in datos["metadatas"][:5]:
-
-        print(md)
-
     retriever = crear_retriever(
         vectorstore
     )
 
-    llm = crear_llm()
-
     return construir_rag(
-        retriever,
-        llm
+        retriever
     )
