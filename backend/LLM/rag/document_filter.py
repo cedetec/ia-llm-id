@@ -1,28 +1,28 @@
 # LLM/rag/document_filter.py
 
-from LLM.rag.document_detector import (
+from RAG.rag.document_detector import (
     detectar_documento,
     detectar_documentos
 )
 
-from LLM.rag.document_matcher import (
+from RAG.rag.document_matcher import (
     coincide_documento
 )
 
-from LLM.validators.document_filter_validator import (
+from RAG.validators.document_filter_validator import (
     validar_filtro_documental
 )
 
-from LLM.rag.query_type_detector import (
+from RAG.rag.query_type_detector import (
     detectar_tipo_consulta
 )
 
-from LLM.rag.document_priority import (
+from RAG.rag.document_priority import (
     calcular_prioridad,
     existe_seccion_prioritaria
 )
 
-from LLM.rag.rag_constants import (
+from RAG.rag.rag_constants import (
     MIN_DOCUMENTOS,
     MAX_DOCUMENTOS
 )
@@ -126,11 +126,6 @@ def filtrar_documentos(
         pregunta
     )
 
-    print(
-        "[DOCUMENTOS OBJETIVO]",
-        objetivos
-    )
-
     tipo_consulta = detectar_tipo_consulta(
         pregunta
     )
@@ -144,11 +139,6 @@ def filtrar_documentos(
 
         info = detectar_documento(
             pregunta
-        )
-
-        print(
-            "[DOCUMENTO DETECTADO]",
-            info
         )
 
         if info["documento"] is None:
@@ -192,18 +182,6 @@ def filtrar_documentos(
                 nombre,
                 objetivos
             )
-        )
-
-        print(
-            "[DOCUMENT MATCH MULTI]",
-            {
-                "documentos_objetivo": [
-                    objetivo["documento"]
-                    for objetivo in objetivos
-                ],
-                "documento": nombre,
-                "coincide": coincide
-            }
         )
 
         if coincide:
@@ -331,24 +309,5 @@ def filtrar_documentos(
         documentos,
         documentos_filtrados
     )
-
-    print(
-        "[DOCUMENT FILTER]",
-        f"{len(documentos)} -> "
-        f"{len(documentos_filtrados)}"
-    )
-
-    for doc in documentos_filtrados:
-
-        print(
-            "   ",
-            doc.metadata.get(
-                "documento"
-            ),
-            "Página",
-            doc.metadata.get(
-                "pagina"
-            )
-        )
 
     return documentos_filtrados
