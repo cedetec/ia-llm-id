@@ -2,15 +2,14 @@
 
 from langchain_community.vectorstores import Chroma
 
-from LLM.validators.metadata_validator import (
+from Preprocesamiento.validators.metadata_validator import (
     validar_metadata
 )
 
-from LLM.validators.vectorstore_validator import (
+from RAG.validators.vectorstore_validator import (
     validar_vectorstore
 )
 
-from collections import Counter
 
 from app.core.paths import CHROMA_DIR
 
@@ -78,26 +77,8 @@ def _agregar_por_lotes(
     ) // BATCH_SIZE
 
     print(
-        "\n================ INDEXACIÓN POR LOTES ================\n"
-    )
-
-    print(
-        "Total de chunks:",
-        total_documentos
-    )
-
-    print(
-        "Tamaño de lote:",
-        BATCH_SIZE
-    )
-
-    print(
-        "Total de lotes:",
-        total_lotes
-    )
-
-    print(
-        "=======================================================\n"
+        f"[CHROMA] {total_documentos} chunks "
+        f"en {total_lotes} lotes de hasta {BATCH_SIZE}."
     )
 
     for inicio in range(
@@ -235,53 +216,14 @@ def crear_vectorstore(
         documentos
     )
 
-    print("=" * 60)
-    print("Documentos recibidos por Chroma:", len(documentos))
-    print("Tamaño de lote:", BATCH_SIZE)
-    print("=" * 60)
-
-    #
-    # Resumen de secciones
-    #
-
-    contador = Counter()
-
-    for doc in documentos:
-
-        contador[
-            doc.metadata.get("seccion", "")
-        ] += 1
-
-    print(
-        "\n================ RESUMEN CHROMA ================\n"
-    )
-
-    for nombre, cantidad in contador.most_common():
-
-        print(
-            f"{nombre:<35} {cantidad}"
-        )
-
     total_almacenados = _agregar_por_lotes(
         vectorstore,
         documentos
     )
 
     print(
-        "\n======================================================="
-    )
-
-    print(
-        "Indexación por lotes finalizada."
-    )
-
-    print(
-        "Chunks almacenados:",
-        total_almacenados
-    )
-
-    print(
-        "=======================================================\n"
+        "[CHROMA] Indexación por lotes finalizada. "
+        f"Chunks almacenados: {total_almacenados}"
     )
 
     validar_vectorstore(
@@ -328,18 +270,13 @@ def agregar_documentos_vectorstore(
         documentos
     )
 
-    print("=" * 60)
-    print("Documentos agregados:", len(documentos))
-    print("Tamaño de lote:", BATCH_SIZE)
-    print("=" * 60)
-
     total_almacenados = _agregar_por_lotes(
         vectorstore,
         documentos
     )
 
     print(
-        "\nTotal de chunks:",
+        "[CHROMA] Total de chunks almacenados:",
         total_almacenados
     )
 
