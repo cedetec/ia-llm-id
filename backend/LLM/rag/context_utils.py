@@ -1,6 +1,6 @@
 # context_utils.py
 
-from LLM.rag.context_patterns import (
+from RAG.rag.context_patterns import (
     PATRONES_OBJETIVO,
     PATRONES_CONTENIDO_OBJETIVO_GENERAL
 )
@@ -80,24 +80,6 @@ def es_objetivo_general(doc):
         for patron in PATRONES_CONTENIDO_OBJETIVO_GENERAL
 
     ):
-
-        print(
-
-            "[OBJETIVO DETECTADO POR CONTENIDO]",
-
-            {
-
-                "pagina": doc.metadata.get("pagina"),
-
-                "documento": doc.metadata.get("documento"),
-
-                "encabezado": doc.metadata.get(
-                    "encabezado_original"
-                )
-
-            }
-
-        )
 
         return True
 
