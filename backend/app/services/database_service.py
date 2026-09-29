@@ -37,7 +37,7 @@ from app.schemas.database import (
 # Reutilización del pipeline existente
 # =====================================================
 
-from LLM.indexing.indexing_service import (
+from RAG.indexing.indexing_service import (
     indexar_documentos,
     indexar_pdf,
 )
@@ -50,18 +50,18 @@ from app.database.document_repository import (
     listar_documentos
 )
 
-from LLM.config.vectorstore_settings import (
+from RAG.config.vectorstore_settings import (
     NOMIC_COLLECTION,
     GEMMA_COLLECTION,
 )
 
-from LLM.config.embedding_settings import (
+from RAG.config.embedding_settings import (
     DEFAULT_EMBEDDING_MODEL,
     EMBEDDING_GEMMA_MODEL,
 )
 
-from LLM.embeddings.embedding_service import crear_embeddings
-from LLM.vectorstore.chroma_service import cargar_vectorstore
+from RAG.embeddings.embedding_service import crear_embeddings
+from RAG.vectorstore.chroma_service import cargar_vectorstore
 
 from app.core.paths import (
 
@@ -212,19 +212,7 @@ async def upload_pdf(
 
     registrar_log("Indexación iniciada")
 
-    print("=" * 80)
-    print("ANTES DE LLAMAR A indexar_pdf")
-    print(indexar_pdf)
-    print(indexar_pdf.__module__)
-    print(indexar_pdf.__code__.co_filename)
-    print("=" * 80)
-
     chunks = indexar_pdf(destino)
-
-    print("=" * 80)
-    print("DESPUÉS DE LLAMAR A indexar_pdf")
-    print("chunks =", chunks)
-    print("=" * 80)
 
     tiempo = finalizar_medicion()
 
