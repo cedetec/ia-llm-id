@@ -1,10 +1,10 @@
 # bonus_calculator.py
 
-from LLM.reranker.rerank_rules import (
+from RAG.reranker.rerank_rules import (
     obtener_bonificacion
 )
 
-from LLM.rag.context_patterns import (
+from RAG.rag.context_patterns import (
     PATRONES_ADMINISTRATIVOS
 )
 
@@ -133,38 +133,6 @@ def calcular_bonus(
                 bonus_documento += BONUS_ANIO
 
     score_final += bonus_documento
-
-    #
-    # Debug
-    #
-
-    print(
-
-        "[BONUS CALCULATOR]",
-
-        {
-
-            "pagina": doc.metadata.get("pagina"),
-
-            "documento": doc.metadata.get("documento"),
-
-            "categoria": categoria,
-
-            "seccion": seccion,
-
-            "score_original": round(score_original, 3),
-
-            "bonus_categoria": bonus_categoria,
-
-            "bonus_documento": bonus_documento,
-
-            "penalizacion": penalizacion,
-
-            "score_final": round(score_final, 3)
-
-        }
-
-    )
 
     return {
 
