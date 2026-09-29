@@ -244,22 +244,6 @@ def detectar_tipo_consulta(consulta: str):
 
     )
 
-    print(
-
-        "[QUERY TYPE]",
-
-        {
-
-            "consulta": consulta,
-
-            "trigger": mejor["trigger"],
-
-            "tipo": mejor["tipo"]
-
-        }
-
-    )
-
     return mejor["tipo"]
 
 
@@ -282,13 +266,5 @@ def detectar_tipos_consulta(consulta: str):
                 )
 
                 break
-
-    print(
-        "[QUERY TYPES]",
-        {
-            "consulta": consulta,
-            "tipos": tipos
-        }
-    )
 
     return tipos
