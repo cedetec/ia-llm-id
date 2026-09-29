@@ -1,225 +1,494 @@
 {/* frontend/src/pages/DatabasePage.jsx */}
-import { useEffect, useRef, useState } from "react";
+
+import {
+    useEffect,
+    useRef,
+    useState
+} from "react";
 
 import DatabaseToolbar from "../components/DatabaseToolbar";
 import DatabaseView from "../components/DatabaseView";
 
-const API_URL = import.meta.env.VITE_API_URL;
+import {
+    obtenerEstadisticas,
+    subirPDF,
+    descargarPDFs,
+    reindexarBaseDatos
+} from "../services/ChatDatabase";
+
 
 export default function DatabasePage(){
 
-    const fileInputRef = useRef(null);
+    const fileInputRef =
+        useRef(null);
 
-    const [database,setDatabase] = useState({
 
-        documentos:0,
-        chunks:0,
-        coleccion:"",
-        embedding:"",
-        modelo:"",
-        ultimaIndexacion:"",
-        concursos:[]
+    const [database, setDatabase] =
+        useState({
 
-    });
-
-    const [seleccionados, setSeleccionados] = useState([]);
-
-    console.log("DATABASE", database);
-
-    useEffect(() => {
-
-        obtenerEstadisticas();
-
-    }, []);
-
-    const cargarDatos = ()=>{
-
-        fileInputRef.current.click();
-
-    };
-
-    const subirArchivo = async (event) => {
-
-        console.log("subirArchivo ejecutado");
-
-        const file = event.target.files[0];
-
-        if (!file) {
-            console.log("No hay archivo");
-            return;
-        }
-
-        console.log(file.name);
-
-        const formData = new FormData();
-
-        formData.append("archivo", file);
-
-        try {
-
-            const response = await fetch(
-                `${API_URL}/database/upload`,
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
-
-            console.log("Status:", response.status);
-
-            const texto = await response.text();
-
-            console.log(texto);
-
-        } catch (e) {
-
-            console.error(e);
-
-        }
-    };
-
-    const cambiarSeleccion = (nombre) => {
-
-        setSeleccionados((actuales) => {
-
-            if (actuales.includes(nombre)) {
-
-                return actuales.filter(
-                    (archivo) => archivo !== nombre
-                );
-
-            }
-
-            return [
-                ...actuales,
-                nombre
-            ];
+            documentos: 0,
+            chunks: 0,
+            coleccion: "",
+            embedding: "",
+            modelo: "",
+            ultimaIndexacion: "",
+            concursos: []
 
         });
 
+
+    const [seleccionados, setSeleccionados] =
+        useState([]);
+
+
+    /*
+     * Estados de interacción
+     */
+
+    const [cargando, setCargando] =
+        useState(false);
+
+
+    const [subiendo, setSubiendo] =
+        useState(false);
+
+
+    const [reindexando, setReindexando] =
+        useState(false);
+
+
+    const [mensaje, setMensaje] =
+        useState("");
+
+
+    const [errorMsg, setErrorMsg] =
+        useState("");
+
+
+    /*
+     * Cargar estadísticas al entrar
+     * a la página.
+     */
+
+    useEffect(() => {
+
+        cargarEstadisticas();
+
+    }, []);
+
+
+    /*
+     * Abrir selector de archivos.
+     */
+
+    const cargarDatos = () => {
+
+        fileInputRef.current?.click();
+
     };
 
-    const descargarDatos = async () => {
 
-        if (seleccionados.length === 0) {
+    /*
+     * Obtener estadísticas.
+     */
 
-            alert(
-                "Seleccione al menos un PDF para descargar."
-            );
+    const cargarEstadisticas =
+        async () => {
 
-            return;
-        }
+            setCargando(true);
 
-        try {
+            setErrorMsg("");
 
-            const response = await fetch(
-                `${API_URL}/database/download-selected`,
-                {
-                    method: "POST",
+            try {
 
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                const json =
+                    await obtenerEstadisticas();
 
-                    body: JSON.stringify(
-                        seleccionados
-                    )
+                setDatabase(json);
+
+            } catch (error) {
+
+                console.error(error);
+
+                setErrorMsg(
+                    error.message ||
+                    "No se pudieron cargar las estadísticas."
+                );
+
+            } finally {
+
+                setCargando(false);
+
+            }
+
+        };
+
+
+    /*
+     * Subir PDF.
+     */
+
+    const subirArchivo =
+        async (event) => {
+
+            const file =
+                event.target.files?.[0];
+
+
+            if (!file) {
+
+                return;
+
+            }
+
+
+            /*
+             * Validación básica del tipo.
+             */
+
+            if (
+                file.type !==
+                "application/pdf"
+            ) {
+
+                setErrorMsg(
+                    "Solo se permiten archivos PDF."
+                );
+
+                event.target.value = "";
+
+                return;
+
+            }
+
+
+            setSubiendo(true);
+
+            setMensaje("");
+
+            setErrorMsg("");
+
+
+            try {
+
+                await subirPDF(file);
+
+
+                setMensaje(
+                    `Archivo "${file.name}" subido correctamente.`
+                );
+
+
+                /*
+                 * Actualizar estadísticas
+                 * después de subir el archivo.
+                 */
+
+                await cargarEstadisticas();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+                setErrorMsg(
+                    error.message ||
+                    "No se pudo subir el archivo."
+                );
+
+            } finally {
+
+                setSubiendo(false);
+
+                /*
+                 * Permite volver a seleccionar
+                 * el mismo archivo posteriormente.
+                 */
+
+                event.target.value = "";
+
+            }
+
+        };
+
+
+    /*
+     * Cambiar selección de PDF.
+     */
+
+    const cambiarSeleccion =
+        (nombre) => {
+
+            setSeleccionados(
+                (actuales) => {
+
+                    if (
+                        actuales.includes(nombre)
+                    ) {
+
+                        return actuales.filter(
+                            (archivo) =>
+                                archivo !== nombre
+                        );
+
+                    }
+
+
+                    return [
+                        ...actuales,
+                        nombre
+                    ];
+
                 }
             );
 
-            if (!response.ok) {
+        };
 
-                const texto = await response.text();
 
-                throw new Error(
-                    texto ||
+    /*
+     * Descargar PDFs seleccionados.
+     */
+
+    const descargarDatos =
+        async () => {
+
+            setErrorMsg("");
+
+            setMensaje("");
+
+
+            try {
+
+                await descargarPDFs(
+                    seleccionados
+                );
+
+
+                setMensaje(
+                    "Descarga iniciada correctamente."
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Error al descargar PDFs:",
+                    error
+                );
+
+
+                setErrorMsg(
+                    error.message ||
                     "No fue posible descargar los archivos."
                 );
 
             }
 
-            const blob = await response.blob();
+        };
 
-            const url = window.URL.createObjectURL(
-                blob
+
+    /*
+     * Reindexar la base de datos.
+     */
+
+    const entrenar =
+        async () => {
+
+            setReindexando(true);
+
+            setMensaje(
+                "Reindexando documentos..."
             );
 
-            const enlace = document.createElement("a");
+            setErrorMsg("");
 
-            enlace.href = url;
 
-            enlace.download =
-                "anid_pdfs_seleccionados.zip";
+            try {
 
-            document.body.appendChild(
-                enlace
-            );
+                await reindexarBaseDatos();
 
-            enlace.click();
 
-            enlace.remove();
+                setMensaje(
+                    "Reindexación completada correctamente."
+                );
 
-            window.URL.revokeObjectURL(
-                url
-            );
 
-        } catch (error) {
+                /*
+                 * Actualizar estadísticas
+                 * después de reindexar.
+                 */
 
-            console.error(
-                "Error al descargar PDFs:",
-                error
-            );
+                await cargarEstadisticas();
 
-            alert(
-                "No fue posible descargar los archivos seleccionados."
-            );
 
-        }
+            } catch (error) {
 
-    };
+                console.error(error);
 
-    const obtenerEstadisticas = async()=>{
+                setErrorMsg(
+                    error.message ||
+                    "No se pudo completar la reindexación."
+                );
 
-        console.log("LLAMANDO A /database/stats");
+            } finally {
 
-        const response = await fetch(
-            `${API_URL}/database/stats`
-        );
+                setReindexando(false);
 
-        const json = await response.json();
-
-        console.log(json);
-
-        setDatabase(json);
-
-    };
-
-    const entrenar = async () => {
-
-        const response = await fetch(
-            `${API_URL}/database/reindex`,
-            {
-                method: "POST"
             }
-        );
 
-        const json = await response.json();
+        };
 
-        console.log(json);
 
-        await obtenerEstadisticas();
+    return (
 
-    };
+        <div className="space-y-4">
 
-    return(
+            {/* =============================== */}
+            {/* MENSAJES DE ESTADO              */}
+            {/* =============================== */}
 
-        <>
+            {mensaje && (
+
+                <div
+                    className="
+                        rounded-lg
+                        border
+                        border-green-200
+                        bg-green-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-green-700
+                    "
+                >
+
+                    ✅ {mensaje}
+
+                </div>
+
+            )}
+
+
+            {errorMsg && (
+
+                <div
+                    className="
+                        rounded-lg
+                        border
+                        border-red-200
+                        bg-red-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-red-700
+                    "
+                >
+
+                    ⚠️ {errorMsg}
+
+                </div>
+
+            )}
+
+
+            {cargando && (
+
+                <div
+                    className="
+                        rounded-lg
+                        bg-blue-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-blue-700
+                    "
+                >
+
+                    🔄 Actualizando información
+                    de la base de datos...
+
+                </div>
+
+            )}
+
+
+            {subiendo && (
+
+                <div
+                    className="
+                        rounded-lg
+                        bg-purple-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-purple-700
+                    "
+                >
+
+                    📤 Subiendo documento...
+
+                </div>
+
+            )}
+
+
+            {reindexando && (
+
+                <div
+                    className="
+                        rounded-lg
+                        bg-yellow-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-yellow-700
+                    "
+                >
+
+                    🧠 Reindexando documentos.
+                    Esto puede tardar...
+
+                </div>
+
+            )}
+
+
+            {/* =============================== */}
+            {/* ARCHIVOS SELECCIONADOS          */}
+            {/* =============================== */}
+
+            {seleccionados.length > 0 && (
+
+                <div
+                    className="
+                        rounded-lg
+                        border
+                        bg-white
+                        px-4
+                        py-3
+                        text-sm
+                        text-gray-700
+                    "
+                >
+
+                    📄 {seleccionados.length}
+                    {" "}
+                    archivo(s) seleccionado(s)
+
+                </div>
+
+            )}
+
+
+            {/* =============================== */}
+            {/* INPUT DE ARCHIVO                 */}
+            {/* =============================== */}
 
             <input
 
                 type="file"
 
-                accept=".pdf"
+                accept=".pdf,application/pdf"
 
                 ref={fileInputRef}
 
@@ -229,29 +498,43 @@ export default function DatabasePage(){
 
             />
 
+
+            {/* =============================== */}
+            {/* BARRA DE HERRAMIENTAS            */}
+            {/* =============================== */}
+
             <DatabaseToolbar
 
                 onUpload={cargarDatos}
 
                 onDownload={descargarDatos}
 
-                onStats={obtenerEstadisticas}
+                onStats={cargarEstadisticas}
 
                 onTrain={entrenar}
 
             />
 
+
+            {/* =============================== */}
+            {/* INFORMACIÓN DE LA BASE           */}
+            {/* =============================== */}
+
             <DatabaseView
 
                 {...database}
 
-                seleccionados={seleccionados}
+                seleccionados={
+                    seleccionados
+                }
 
-                onToggleSeleccion={cambiarSeleccion}
+                onToggleSeleccion={
+                    cambiarSeleccion
+                }
 
             />
 
-        </>
+        </div>
 
     );
 
