@@ -2,16 +2,16 @@
 
 from sentence_transformers import CrossEncoder
 
-from LLM.config.reranker_settings import (
+from RAG.config.reranker_settings import (
     DEFAULT_RERANKER_MODEL,
     DEFAULT_RERANK_TOP_K
 )
 
-from LLM.reranker.ranking import (
+from RAG.reranker.ranking import (
     construir_ranking
 )
 
-from LLM.validators.reranker_validator import (
+from RAG.validators.reranker_validator import (
     validar_ranking
 )
 
@@ -93,24 +93,6 @@ class Reranker:
         ]
 
         scores = self.model.predict(pares)
-
-        print("=" * 80)
-        print("[SCORES CROSS-ENCODER]")
-        print("=" * 80)
-
-        for doc, score in zip(documentos, scores):
-
-            print(
-                {
-                    "score": round(float(score), 4),
-                    "pagina": doc.metadata.get("pagina"),
-                    "documento": doc.metadata.get("documento"),
-                    "seccion": doc.metadata.get("seccion"),
-                    "titulo_hijo": doc.metadata.get("titulo_hijo"),
-                    "subtitulo": doc.metadata.get("subtitulo"),
-                    "encabezado": doc.metadata.get("encabezado_original")
-                }
-            )
 
         ranking = construir_ranking(
 
