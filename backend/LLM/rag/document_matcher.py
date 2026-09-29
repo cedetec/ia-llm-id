@@ -138,28 +138,6 @@ def coincide_documento(
 
     )
 
-    print(
-
-        "[DOCUMENT MATCH]",
-
-        {
-
-            "consulta": documento_consulta,
-
-            "chunk": documento_chunk,
-
-            "tokens": tokens,
-
-            "coinciden": coinciden,
-
-            "porcentaje": round(porcentaje, 3),
-
-            "anio": anio
-
-        }
-
-    )
-
     #
     # Aceptar cuando al menos el 60% de las
     # palabras importantes coincidan.
