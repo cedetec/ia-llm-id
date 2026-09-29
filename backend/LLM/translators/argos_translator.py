@@ -95,9 +95,6 @@ class ArgosTranslator:
 
             return ""
 
-        print(f"\n[ARGOS {direccion} ENTRADA]\n")
-        print(texto)
-
         resultado = []
 
         for linea in texto.splitlines():
@@ -142,9 +139,6 @@ class ArgosTranslator:
             )
 
         texto_traducido = "\n".join(resultado)
-
-        print(f"\n[ARGOS {direccion} SALIDA]\n")
-        print(texto_traducido)
 
         return texto_traducido
 
