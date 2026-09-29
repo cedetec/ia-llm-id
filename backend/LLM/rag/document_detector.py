@@ -3,7 +3,7 @@
 import re
 import unicodedata
 
-from LLM.rag.document_registry import (
+from RAG.rag.document_registry import (
     DOCUMENTOS,
     DOCUMENTOS_CONCRETOS,
     DOCUMENTOS_POR_ANIO
@@ -150,22 +150,6 @@ def detectar_documento(pregunta):
 
     if not coincidencias:
 
-        print(
-
-            "[DOCUMENTO DETECTADO]",
-
-            {
-
-                "pregunta": pregunta,
-
-                "coincidencias": [],
-
-                "seleccionado": None
-
-            }
-
-        )
-
         return {
 
             "documento": None,
@@ -181,22 +165,6 @@ def detectar_documento(pregunta):
     coincidencia = seleccionar_mejor_coincidencia(
 
         coincidencias
-
-    )
-
-    print(
-
-        "[DOCUMENTO DETECTADO]",
-
-        {
-
-            "pregunta": pregunta,
-
-            "coincidencias": coincidencias,
-
-            "seleccionado": coincidencia
-
-        }
 
     )
 
@@ -406,14 +374,6 @@ def detectar_documentos(pregunta):
             if item["posicion"] >= 0
             else float("inf")
         )
-    )
-
-    print(
-        "[DOCUMENTOS DETECTADOS]",
-        {
-            "pregunta": pregunta,
-            "documentos": resultados
-        }
     )
 
     return resultados
