@@ -2,32 +2,32 @@
 
 import logging
 
-from LLM.reranker.category_classifier import (
+from RAG.reranker.category_classifier import (
     clasificar_categoria
 )
 
-from LLM.rag.document_filter import (
+from RAG.rag.document_filter import (
     filtrar_documentos
 )
 
-from LLM.rag.noise_filter import (
+from RAG.rag.noise_filter import (
     filtrar_ruido
 )
 
-from LLM.reranker.rerank_service import (
+from RAG.reranker.rerank_service import (
     rerank_documentos
 )
 
-from LLM.validators.retrieval_validator import (
+from RAG.validators.retrieval_validator import (
     validar_retriever
 )
 
-from LLM.rag.query_type_detector import (
+from RAG.rag.query_type_detector import (
     detectar_tipo_consulta,
     detectar_tipos_consulta
 )
 
-from LLM.rag.document_detector import (
+from RAG.rag.document_detector import (
     detectar_documento
 )
 
@@ -715,26 +715,6 @@ class RetrievalPipeline:
 
         )
 
-        print("\n========== CANDIDATOS ANTES DEL RERANKER ==========")
-
-        for i, doc in enumerate(documentos, 1):
-
-            print(
-                i,
-                "| documento=",
-                doc.metadata.get("documento"),
-                "| pagina=",
-                doc.metadata.get("pagina"),
-                "| seccion=",
-                doc.metadata.get("seccion"),
-                "| titulo=",
-                doc.metadata.get("titulo_hijo"),
-                "| encabezado=",
-                doc.metadata.get("encabezado_original")
-            )
-
-        print("====================================================\n")
-
         ranking = self._rerank(
 
             documentos,
@@ -760,24 +740,6 @@ class RetrievalPipeline:
             resultado.documento.metadata["rerank_score"] = float(
                 resultado.score_final
             )
-
-        print("\n========== RANKING COMPLETO DEBUG ==========")
-
-        for posicion, resultado in enumerate(ranking, 1):
-
-            doc = resultado.documento
-
-            print(
-                posicion,
-                "| documento=",
-                doc.metadata.get("documento"),
-                "| pagina=",
-                doc.metadata.get("pagina"),
-                "| score=",
-                resultado.score_final
-            )
-
-        print("============================================\n")
 
         if documentos_relevantes:
 
