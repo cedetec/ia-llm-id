@@ -1,11 +1,11 @@
 # ranking.py
 from dataclasses import dataclass
 
-from LLM.reranker.category_classifier import (
+from RAG.reranker.category_classifier import (
     clasificar_categoria
 )
 
-from LLM.reranker.bonus_calculator import (
+from RAG.reranker.bonus_calculator import (
     calcular_bonus
 )
 
@@ -103,35 +103,6 @@ def construir_ranking(
 
         )
 
-    print("\n================ RANKING ANTES DE ORDENAR ================\n")
-
-    for r in ranking:
-
-        print({
-
-            "pagina":
-                r.documento.metadata.get("pagina"),
-
-            "seccion":
-                r.documento.metadata.get("seccion"),
-
-            "titulo_hijo":
-                r.documento.metadata.get("titulo_hijo"),
-
-            "encabezado":
-                r.documento.metadata.get("encabezado_original"),
-
-            "score_original":
-                round(r.score_original, 4),
-
-            "bonus":
-                round(r.bonus, 4),
-
-            "score_final":
-                round(r.score_final, 4)
-
-        })
-
     ranking.sort(
 
         key=lambda resultado:
@@ -140,28 +111,5 @@ def construir_ranking(
         reverse=True
 
     )
-
-    print("\n================ RANKING FINAL ================\n")
-
-    for i, r in enumerate(ranking, 1):
-
-        print(
-
-            i,
-
-            {
-
-                "pagina":
-                    r.documento.metadata.get("pagina"),
-
-                "titulo_hijo":
-                    r.documento.metadata.get("titulo_hijo"),
-
-                "score":
-                    round(r.score_final, 4)
-
-            }
-
-        )
 
     return ranking
