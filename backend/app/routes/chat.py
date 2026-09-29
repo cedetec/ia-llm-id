@@ -134,76 +134,6 @@ def chat(body: Pregunta):
         _llm = crear_llm()
 
     #
-    # Debug.
-    #
-
-    print("=" * 80)
-
-    print("[CHAT DEBUG]")
-
-    print(
-        "RAG solicitado:",
-        body.rag
-    )
-
-    print(
-        "RAG activo:",
-        rag_nombre
-    )
-
-    print(
-        "Modelo solicitado:",
-        body.modelo
-    )
-
-    print(
-        "Modelo activo:",
-        getattr(
-            _llm,
-            "model",
-            "NO DISPONIBLE"
-        )
-    )
-
-    print(
-        "LLM:",
-        _llm
-    )
-
-    try:
-
-        vectorstore = (
-            rag_service
-            .pipeline
-            .retriever
-            .vectorstore
-        )
-
-        print(
-            "collection name:",
-            vectorstore._collection.name
-        )
-
-        print(
-            "collection id:",
-            vectorstore._collection.id
-        )
-
-        print(
-            "collection count:",
-            vectorstore._collection.count()
-        )
-
-    except Exception as e:
-
-        print(
-            "[CHAT DEBUG ERROR]",
-            repr(e)
-        )
-
-    print("=" * 80)
-
-    #
     # Crear conversación.
     #
 
@@ -261,11 +191,6 @@ def chat(body: Pregunta):
 
         pregunta_llm = body.pregunta
 
-    print(
-        "[LLM QUESTION]",
-        pregunta_llm
-    )
-
     #
     # =====================================================
     # 3. CONSTRUIR PROMPT PARA OLLAMA
@@ -277,18 +202,6 @@ def chat(body: Pregunta):
             "context": contexto,
             "input": pregunta_llm
         }
-    )
-
-    print(
-        "\n========== PROMPT ENVIADO A OLLAMA ==========\n"
-    )
-
-    print(
-        mensajes
-    )
-
-    print(
-        "\n==============================================\n"
     )
 
     #
@@ -381,38 +294,6 @@ def chat(body: Pregunta):
             score = max(
                 scores
             )
-
-    print(
-        "\n================ RESPUESTA DE OLLAMA ================\n"
-    )
-
-    print(
-        respuesta
-    )
-
-    print(
-        "\nModelo:",
-        getattr(
-            _llm,
-            "model",
-            "-"
-        )
-    )
-
-    print(
-        "Tiempo:",
-        tiempo,
-        "s"
-    )
-
-    print(
-        "Chunks:",
-        chunks
-    )
-
-    print(
-        "======================================================\n"
-    )
 
     return {
 
