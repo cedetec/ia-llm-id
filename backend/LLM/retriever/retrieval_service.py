@@ -1,13 +1,8 @@
 # LLM/retrieval/retrieval_service.py
 
-from LLM.config.config_loader import (
+from RAG.config.config_loader import (
     cargar_configuracion_retriever
 )
-
-from LLM.validators.retriever_config_validator import (
-    validar_configuracion_retriever
-)
-
 
 def crear_retriever(
     vectorstore,
@@ -16,9 +11,6 @@ def crear_retriever(
 
     config = cargar_configuracion_retriever()
 
-    validar_configuracion_retriever(
-        config
-    )
 
     kwargs = {
         "k": config["k"]
@@ -61,33 +53,6 @@ def crear_retriever(
             kwargs["score_threshold"] = (
                 config["score_threshold"]
             )
-
-    print(
-
-        "[RETRIEVER CONFIG]",
-
-        {
-
-            "tipo_consulta": tipo_consulta,
-
-            "search_type": config["search_type"],
-
-            "k": kwargs["k"],
-
-            "fetch_k": kwargs.get("fetch_k"),
-
-            "lambda_mult": kwargs.get("lambda_mult"),
-
-            "score_threshold": kwargs.get("score_threshold")
-
-        }
-
-    )
-
-    print(
-        "[RETRIEVER] Chunks en colección:",
-        vectorstore._collection.count()
-    )
 
     return vectorstore.as_retriever(
 
