@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 
-from LLM.preprocessing.section_constants import GENERAL
+from Preprocesamiento.preprocessing.section_constants import GENERAL
 
 
 class BufferManager:
@@ -36,24 +36,6 @@ class BufferManager:
 
         self.metadata = deepcopy(metadata)
 
-        print(
-
-            "[BUFFER METADATA]",
-
-            {
-
-                "seccion": self.metadata.get("seccion"),
-
-                "titulo_padre": self.metadata.get("titulo_padre"),
-
-                "titulo_hijo": self.metadata.get("titulo_hijo"),
-
-                "subtitulo": self.metadata.get("subtitulo")
-
-            }
-
-        )
-
         self.seccion = seccion
 
         self.subtitulo = metadata.get(
@@ -81,30 +63,6 @@ class BufferManager:
     ):
 
         habia_contenido = self.tiene_contenido()
-
-        if habia_contenido:
-
-            print(
-
-                "[REINICIANDO BUFFER]",
-
-                {
-
-                    "seccion": self.seccion,
-
-                    "subtitulo": self.subtitulo,
-
-                    "lineas": self.lineas(),
-
-                    "palabras": self.palabras()
-
-                }
-
-            )
-
-            print(
-                self.buffer[:500]
-            )
 
         self.abrir(
 
@@ -209,11 +167,6 @@ class BufferManager:
         )
 
 
-    def esta_recien_abierto(self):
-
-        return self.chunk_recien_abierto
-
-
     def guardar_si_corresponde(
 
         self,
@@ -225,18 +178,6 @@ class BufferManager:
         if self.puede_guardarse():
 
             guardar_buffer()
-
-        elif self.esta_recien_abierto():
-
-            print(
-                "[INFO] Chunk recién abierto."
-            )
-
-        else:
-
-            print(
-                "[INFO] Solo existe el encabezado."
-            )
 
     def actualizar_pagina(self, metadata):
 
@@ -259,17 +200,6 @@ class BufferManager:
                 self.metadata[campo] = (
                     metadata[campo]
                 )
-
-        print(
-            "[BUFFER CAMBIO PAGINA]",
-            {
-                "page": self.metadata.get("page"),
-                "page_label": self.metadata.get("page_label"),
-                "pagina": self.metadata.get("pagina"),
-                "seccion": self.metadata.get("seccion"),
-                "subtitulo": self.metadata.get("subtitulo")
-            }
-        )
 
 
     def metadata_actual(self):
