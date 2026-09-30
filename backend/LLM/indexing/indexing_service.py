@@ -97,14 +97,6 @@ def _guardar_documentos_indexados(fragmentos):
 
         contador_chunks[nombre] += 1
 
-    print("=" * 80)
-    print("CONTADOR DE CHUNKS")
-    print("=" * 80)
-
-    for nombre, cantidad in contador_chunks.items():
-
-        print(nombre, cantidad)
-
     for pdf in Path(PDF_DIR).glob("*.pdf"):
 
         guardar_documento(
