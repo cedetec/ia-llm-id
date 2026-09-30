@@ -2,15 +2,15 @@
 
 import re
 
-from LLM.preprocessing.section_regex import (
+from Preprocesamiento.preprocessing.section_regex import (
     SECTION_REGEX
 )
 
-from LLM.preprocessing.section_detector import (
+from Preprocesamiento.preprocessing.section_detector import (
     normalizar_encabezado
 )
 
-from LLM.preprocessing.section_vocabulary import (
+from Preprocesamiento.preprocessing.section_vocabulary import (
     PALABRAS_TITULO,
     PALABRAS_PARRAFO
 )
@@ -114,12 +114,6 @@ def detectar_subseccion(lineas, indice):
 
         candidato = normalizar_encabezado(candidato)
 
-        print("=" * 80)
-        print("[SUBSECTION CANDIDATO]")
-        print("cantidad:", cantidad)
-        print("indice:", indice)
-        print("texto:", repr(candidato))
-        print("=" * 80)
 
         if not re.match(
             r"^\s*\d+(?:\.\d+)*",
@@ -139,13 +133,6 @@ def detectar_subseccion(lineas, indice):
                         cantidad
                     )
 
-            print(
-                "[SUBSECTION DESCARTADA]",
-                {
-                    "motivo": "SIN_NUMERACION",
-                    "texto": candidato
-                }
-            )
 
             continue
 
@@ -180,7 +167,6 @@ def detectar_subseccion(lineas, indice):
 
         if not numero:
 
-            print("[DESCARTADO POR SIN_NUMERACION]", candidato)
 
             continue
 
@@ -205,16 +191,7 @@ def detectar_subseccion(lineas, indice):
 
         if primera_palabra[0].lower() not in PALABRAS_TITULO:
 
-            print(
-                "[SUBSECTION DESCARTADA]",
-                {
-                    "motivo": "PRIMERA_PALABRA",
-                    "palabra": primera_palabra[0],
-                    "texto": candidato
-                }
-            )
 
-            print("[DESCARTADO POR PRIMERA_PALABRA]", candidato)
 
             continue
 
@@ -226,10 +203,6 @@ def detectar_subseccion(lineas, indice):
 
         if len(primera_palabra) < MIN_PALABRAS_ENCABEZADO:
 
-            print(
-                "[WARNING] Encabezado demasiado corto:",
-                candidato
-            )
 
             continue
 
@@ -243,14 +216,6 @@ def detectar_subseccion(lineas, indice):
             )
         ):
 
-            print(
-                "[SUBSECTION DESCARTADA]",
-                {
-                    "motivo": "PALABRA_PARRAFO",
-                    "texto": candidato,
-                    "palabras": len(candidato.split())
-                }
-            )
 
             continue
 
@@ -258,25 +223,12 @@ def detectar_subseccion(lineas, indice):
 
         if len(candidato.split()) > MAX_PALABRAS_ENCABEZADO:
 
-            print(
-                "[SUBSECTION DESCARTADA]",
-                {
-                    "motivo": "DEMASIADAS_PALABRAS",
-                    "palabras": len(candidato.split()),
-                    "texto": candidato
-                }
-            )
 
-            print("[DESCARTADO POR MAX_PALABRAS]", candidato)
 
             continue
 
         if candidato.endswith(","):
 
-            print(
-                "[WARNING] Candidato termina en coma:",
-                candidato
-            )
 
             continue
 
@@ -284,25 +236,6 @@ def detectar_subseccion(lineas, indice):
 
             if patron.match(candidato):
 
-                print(
-
-                    "[SUBSECTION MATCH]",
-
-                    {
-
-                        "numero": numero,
-
-                        "texto": candidato,
-
-                        "lineas": cantidad,
-
-                        "seccion": nombre,
-
-                        "patron": patron.pattern
-
-                    }
-
-                )
 
                 return (
 
