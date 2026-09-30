@@ -1,5 +1,4 @@
-{/* frontend/src/App.jsx */}
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import MainLayout from "./layout/MainLayout";
 
@@ -7,113 +6,192 @@ import AssistantPage from "./pages/AssistantPage";
 import ResultsPage from "./pages/ResultsPage";
 import DatabasePage from "./pages/DatabasePage";
 
-const API_URL = import.meta.env.VITE_API_URL;
+import { enviarChat } from "./services/ChatServices";
+
 
 export default function App() {
 
-    const [page, setPage] = useState("assistant");
+    const [page, setPage] =
+        useState("assistant");
 
-    //
-    // Estado global de la consulta
-    //
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] =
+        useState(false);
 
-    const [errorMsg, setErrorMsg] = useState("");
 
-    const [data, setData] = useState(null);
+    const [errorMsg, setErrorMsg] =
+        useState("");
 
-    const [model, setModel] = useState("gemma4:e2b");
 
-    const [rag, setRag] = useState("nomic");
+    const [data, setData] =
+        useState(null);
 
-    //
-    // Ejecutar consulta
-    //
 
-    const handleQuery = async (query) => {
+    const [model, setModel] =
+        useState("gemma4:e2b");
 
-        setLoading(true);
 
-        setErrorMsg("");
+    const [rag, setRag] =
+        useState("nomic");
 
-        setData(null);
 
-        try {
+    /*
+     * Permite cancelar una consulta
+     * que todavía está ejecutándose.
+     */
+    const controllerRef =
+        useRef(null);
 
-            const res = await fetch(
-                `${API_URL}/chat`,
-                {
-                    method: "POST",
 
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+    const handleQuery =
+        async (query) => {
 
-                    body: JSON.stringify({
+            if (
+                !query ||
+                !query.trim()
+            ) {
 
-                        pregunta: query,
-
-                        modelo: model,
-
-                        rag: rag
-
-                    })
-                }
-            );
-
-            if (!res.ok) {
-
-                throw new Error(
-                    `HTTP ${res.status}`
+                setErrorMsg(
+                    "Escriba una consulta."
                 );
+
+                return;
 
             }
 
-            const json = await res.json();
 
-            const respuesta = (
-                json.respuesta || ""
-            )
-                .replace(
-                    /^\*\*Respuesta:\*\*\s*/i,
-                    ""
-                )
-                .trim();
+            /*
+             * Cancela automáticamente
+             * una consulta anterior.
+             */
+            if (controllerRef.current) {
 
-            setData({
+                controllerRef
+                    .current
+                    .abort();
 
-                respuesta,
+            }
 
-                documento: json.documento,
 
-                modelo: json.modelo,
+            const controller =
+                new AbortController();
 
-                tiempo: json.tiempo,
+            controllerRef.current =
+                controller;
 
-                chunks: json.chunks,
 
-                tokens: json.tokens,
+            setLoading(true);
 
-                score: json.score
+            setErrorMsg("");
 
-            });
+            setData(null);
 
-        } catch (err) {
 
-            console.error(err);
+            try {
 
-            setErrorMsg(
-                "No se pudo obtener respuesta."
-            );
+                const json =
+                    await enviarChat({
+                        pregunta:
+                            query.trim(),
 
-        } finally {
+                        modelo:
+                            model,
 
-            setLoading(false);
+                        rag,
 
-        }
+                        signal:
+                            controller.signal
+                    });
 
-    };
+
+                setData({
+
+                    respuesta:
+                        json.respuesta || "",
+
+                    justificacion:
+                        json.justificacion || "",
+
+                    documento:
+                        json.documento,
+
+                    modelo:
+                        json.modelo,
+
+                    tiempo:
+                        json.tiempo,
+
+                    chunks:
+                        json.chunks,
+
+                    tokens:
+                        json.tokens,
+
+                    score:
+                        json.score
+
+                });
+
+
+            } catch (err) {
+
+                if (
+                    err.name ===
+                    "AbortError"
+                ) {
+
+                    setErrorMsg(
+                        "Consulta cancelada."
+                    );
+
+                } else {
+
+                    console.error(err);
+
+                    setErrorMsg(
+                        err.message ||
+                        "No se pudo obtener respuesta."
+                    );
+
+                }
+
+            } finally {
+
+                setLoading(false);
+
+                controllerRef.current =
+                    null;
+
+            }
+
+        };
+
+
+    const cancelarConsulta =
+        () => {
+
+            if (
+                controllerRef.current
+            ) {
+
+                controllerRef
+                    .current
+                    .abort();
+
+            }
+
+        };
+
+
+    const limpiarResultado =
+        () => {
+
+            setData(null);
+
+            setErrorMsg("");
+
+        };
+
 
     return (
 
@@ -121,14 +199,6 @@ export default function App() {
             page={page}
             setPage={setPage}
         >
-
-            {/*
-             * Las páginas permanecen montadas.
-             * Solo ocultamos las que no están seleccionadas.
-             *
-             * Esto evita perder estados internos
-             * al cambiar de sección.
-             */}
 
             <div
                 className={
@@ -154,7 +224,17 @@ export default function App() {
 
                     setRag={setRag}
 
-                    handleQuery={handleQuery}
+                    handleQuery={
+                        handleQuery
+                    }
+
+                    cancelarConsulta={
+                        cancelarConsulta
+                    }
+
+                    limpiarResultado={
+                        limpiarResultado
+                    }
 
                 />
 

@@ -25,16 +25,16 @@ docker exec -i chatbot_backend python - <<'PY'
 import json
 from pathlib import Path
 
-from LLM.startup.startup_service import (
+from RAG.startup.startup_service import (
     crear_rag_service
 )
 
-from LLM.evaluation.benchmark_models import (
+from RAG.evaluation.benchmark_models import (
     ejecutar_modelo,
     MODELOS
 )
 
-from LLM.evaluation.ragas_metrics import (
+from RAG.evaluation.ragas_metrics import (
     RagasMetrics
 )
 
