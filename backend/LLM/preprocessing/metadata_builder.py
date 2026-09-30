@@ -2,11 +2,11 @@
 
 from copy import deepcopy
 
-from LLM.preprocessing.section_detector import (
+from Preprocesamiento.preprocessing.section_detector import (
     obtener_titulo_padre
 )
 
-from LLM.preprocessing.section_constants import (
+from Preprocesamiento.preprocessing.section_constants import (
     GENERAL
 )
 
@@ -41,16 +41,6 @@ def construir_metadata_seccion(
 
     metadata_actual["titulo_hijo"] = seccion
 
-    print(
-        "[METADATA SECCION]",
-        {
-            "seccion": metadata_actual["seccion"],
-            "titulo_padre": metadata_actual["titulo_padre"],
-            "titulo_hijo": metadata_actual["titulo_hijo"],
-            "encabezado": metadata_actual["encabezado_original"]
-        }
-    )
-
     metadata_actual["titulo_padre"] = (
         obtener_titulo_padre(
             seccion
@@ -69,18 +59,6 @@ def construir_metadata_seccion(
     metadata_actual["subtitulo"] = ""
 
     metadata_actual["numero_seccion"] = ""
-
-    print(
-        "[METADATA]",
-        {
-            "seccion": metadata_actual["seccion"],
-            "titulo_padre": metadata_actual["titulo_padre"],
-            "titulo_hijo": metadata_actual["titulo_hijo"],
-            "subtitulo": metadata_actual["subtitulo"],
-            "numero_seccion": metadata_actual["numero_seccion"],
-            "encabezado": metadata_actual["encabezado_original"]
-        }
-    )
 
     return metadata_actual
 
@@ -137,18 +115,6 @@ def construir_metadata_subtitulo(
 
     metadata_actual["encabezado_original"] = (
         encabezado or ""
-    )
-
-    print(
-        "[METADATA]",
-        {
-            "seccion": metadata_actual["seccion"],
-            "titulo_padre": metadata_actual["titulo_padre"],
-            "titulo_hijo": metadata_actual["titulo_hijo"],
-            "subtitulo": metadata_actual["subtitulo"],
-            "numero_seccion": metadata_actual["numero_seccion"],
-            "encabezado": metadata_actual["encabezado_original"]
-        }
     )
 
     return metadata_actual
@@ -248,18 +214,6 @@ def construir_metadata_chunk(
                 "seccion": metadata["seccion"]
             }
         )
-
-    print(
-        "[METADATA CHUNK]",
-        {
-            "seccion": metadata["seccion"],
-            "titulo_padre": metadata["titulo_padre"],
-            "titulo_hijo": metadata["titulo_hijo"],
-            "subtitulo": metadata["subtitulo"],
-            "numero_seccion": metadata["numero_seccion"],
-            "encabezado": metadata["encabezado_original"]
-        }
-    )
 
     for campo in (
         "seccion",
