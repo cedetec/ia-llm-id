@@ -68,10 +68,6 @@ def dividir_por_secciones(documentos):
 
         if metadata is None:
 
-            print(
-                "[BUFFER] Sin metadata, no se guarda."
-            )
-
             return
 
 
