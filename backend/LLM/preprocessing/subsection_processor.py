@@ -1,14 +1,14 @@
 # subsection_processor.py
 
-from LLM.preprocessing.metadata_builder import (
+from Preprocesamiento.preprocessing.metadata_builder import (
     construir_metadata_subtitulo
 )
 
-from LLM.preprocessing.section_detector import (
+from Preprocesamiento.preprocessing.section_detector import (
     normalizar_encabezado
 )
 
-from LLM.preprocessing.section_constants import (
+from Preprocesamiento.preprocessing.section_constants import (
     GENERAL,
     OTRAS_SECCIONES
 )
@@ -42,10 +42,6 @@ def procesar_subtitulo(
     #
 
     if subtitulo == subtitulo_actual:
-
-        print(
-            "[INFO] Subtítulo repetido."
-        )
 
         return (
 
@@ -97,30 +93,12 @@ def procesar_subtitulo(
             }
         )
             
-    print(
-        "[SUBSECTION SECCION]",
-        {
-            "detectada": seccion_detectada,
-            "actual": seccion_actual,
-            "final": seccion_subtitulo,
-            "encabezado": encabezado_original
-        }
-    )
-
     #
     # Guardar el buffer anterior si corresponde.
     #
 
     buffer_manager.guardar_si_corresponde(
         guardar_buffer
-    )
-
-    print(
-
-        f"[SUBSECTION] "
-
-        f"{subtitulo_actual} -> {subtitulo}"
-
     )
 
     #
@@ -139,29 +117,6 @@ def procesar_subtitulo(
 
     )
 
-    print(
-        "[SUBSECTION METADATA]",
-        {
-            "seccion":
-                metadata_actual.get("seccion"),
-
-            "titulo_padre":
-                metadata_actual.get("titulo_padre"),
-
-            "titulo_hijo":
-                metadata_actual.get("titulo_hijo"),
-
-            "subtitulo":
-                metadata_actual.get("subtitulo"),
-
-            "numero_seccion":
-                metadata_actual.get("numero_seccion"),
-
-            "encabezado":
-                metadata_actual.get("encabezado_original")
-        }
-    )
-
     #
     # Reiniciar buffer.
     #
@@ -174,26 +129,6 @@ def procesar_subtitulo(
 
         encabezado_original
 
-    )
-
-    print(
-        "[SUBSECTION BUFFER]",
-        {
-            "seccion":
-                buffer_manager.metadata.get("seccion"),
-
-            "titulo_padre":
-                buffer_manager.metadata.get("titulo_padre"),
-
-            "titulo_hijo":
-                buffer_manager.metadata.get("titulo_hijo"),
-
-            "subtitulo":
-                buffer_manager.metadata.get("subtitulo"),
-
-            "encabezado":
-                buffer_manager.metadata.get("encabezado_original")
-        }
     )
 
     return (
