@@ -26,10 +26,6 @@ from LLM.prompts.system_prompt import (
     SYSTEM_PROMPT
 )
 
-from LLM.validators.llm_validator import (
-    validar_llm
-)
-
 from LLM.translators.translation_policy import (
     usar_traduccion
 )
@@ -228,17 +224,6 @@ def chat(body: Pregunta):
             respuesta
         )
 
-    #
-    # =====================================================
-    # 6. VALIDACIÓN
-    # =====================================================
-    #
-
-    validar_llm(
-        body.pregunta,
-        contexto,
-        respuesta
-    )
 
     tiempo = round(
         time.perf_counter() - inicio,

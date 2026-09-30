@@ -6,7 +6,7 @@ from LLM.config import llm_config
 
 import os
 
-from LLM.config.embedding_settings import (
+from RAG.config.embedding_settings import (
     DEFAULT_OLLAMA_HOST
 )
 

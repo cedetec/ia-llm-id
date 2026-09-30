@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from LLM.startup.startup_service import (
+from RAG.startup.startup_service import (
     crear_rag_service
 )
 
@@ -11,12 +11,12 @@ from app.core.paths import (
     CHROMA_GEMMA_DIR
 )
 
-from LLM.config.vectorstore_settings import (
+from RAG.config.vectorstore_settings import (
     NOMIC_COLLECTION,
     GEMMA_COLLECTION,
 )
 
-from LLM.config.embedding_settings import (
+from RAG.config.embedding_settings import (
     DEFAULT_EMBEDDING_MODEL,
     EMBEDDING_GEMMA_MODEL
 )

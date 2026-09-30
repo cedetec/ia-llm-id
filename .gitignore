@@ -61,3 +61,16 @@ backend/data/pdfs2/
 
 # Backups de resultados
 backend/evaluation/results/backup_before_final_benchmark/
+
+# =========================
+# Datos locales del entorno
+# =========================
+backend/anid_nomic/
+backend/pdfs2/
+data/input/
+
+# =========================
+# Backups locales de trabajo
+# =========================
+.backend_cleanup_backup_*/
+.cleanup_backup_*/

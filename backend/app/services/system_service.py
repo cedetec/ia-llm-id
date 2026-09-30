@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app.schemas.database import DatabaseStatus
 
-from LLM.config.config_loader import (
+from RAG.config.config_loader import (
     cargar_configuracion_embeddings,
 )
 
