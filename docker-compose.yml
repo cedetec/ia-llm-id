@@ -1,0 +1,143 @@
+services:
+
+  backend-retrieval:
+    build:
+      context: ./backend
+    depends_on:
+      - ollama
+      - mongodb
+    ports:
+      - "8001:8001"
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY:-False}"
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    networks:
+      - rag_network
+    command: uvicorn scripts.retrieval_main:app --host 0.0.0.0 --port 8001
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  backend-generation:
+    build:
+      context: ./backend
+    depends_on:
+      - ollama
+      - mongodb
+      - backend-retrieval
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY:-False}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173}"
+    volumes:
+      - ./backend:/app
+    networks:
+      - rag_network
+    command: uvicorn scripts.generation_main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  backend-ingestion:
+    build:
+      context: ./backend
+    profiles:
+      - offline
+    depends_on:
+      - ollama
+      - mongodb
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    networks:
+      - rag_network
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend-generation
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-https://iac-id.cedetec.cl}"
+    networks:
+      - rag_network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    shm_size: "4gb"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "3"
+      OLLAMA_KEEP_ALIVE: "-1"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    restart: unless-stopped
+    networks:
+      - rag_network
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - rag_network
+
+  ollama-pull-models:
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    networks:
+      - rag_network
+    command: >
+      sh -c "
+      echo 'Waiting for Ollama server...';
+      until curl -s http://ollama:11434/api/tags; do echo 'Waiting...'; sleep 5; done;
+      echo 'Pulling models...';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"nomic-embed-text\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"gemma2:2b\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"gemma4:e2b\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"deepseek-r1:8b\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"mistral:latest\"}';
+      echo 'All models pulled successfully!'
+      "
+
+volumes:
+  ollama_data:
+  mongodb_data:
+  backend_data:
+
+networks:
+  rag_network:
+    driver: bridge

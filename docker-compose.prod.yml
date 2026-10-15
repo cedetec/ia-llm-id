@@ -1,0 +1,169 @@
+services:
+
+  backend-retrieval:
+    build:
+      context: ./backend
+    depends_on:
+      - ollama
+      - mongodb
+    ports:
+      - "8001:8001"
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY:-False}"
+    volumes:
+      - ./backend/data:/app/data
+    networks:
+      - rag_network
+    command: uvicorn scripts.retrieval_main:app --host 0.0.0.0 --port 8001
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8001/health || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  backend-generation:
+    build:
+      context: ./backend
+    depends_on:
+      backend-retrieval:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      mongodb:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+      ANONYMIZED_TELEMETRY: "${ANONYMIZED_TELEMETRY:-False}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-https://iac-id.cedetec.cl}"
+    volumes:
+      - ./backend/data:/app/data
+    networks:
+      - rag_network
+    command: uvicorn scripts.generation_main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8000/health || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  backend-ingestion:
+    build:
+      context: ./backend
+    depends_on:
+      - ollama
+      - mongodb
+    environment:
+      OLLAMA_HOST: "${OLLAMA_HOST:-http://ollama:11434}"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-cedetec}"
+    volumes:
+      - ./backend/data:/app/data
+    networks:
+      - rag_network
+    command: tail -f /dev/null
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: "https://iac-id.cedetec.cl"
+    depends_on:
+      backend-generation:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    networks:
+      - rag_network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost:80/ || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    shm_size: "4gb"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "3"
+      OLLAMA_KEEP_ALIVE: "-1"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    restart: unless-stopped
+    networks:
+      - rag_network
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - rag_network
+
+  ollama-pull-models:
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    networks:
+      - rag_network
+    command: >
+      sh -c "
+      echo 'Waiting for Ollama server...';
+      until curl -s http://ollama:11434/api/tags; do echo 'Waiting...'; sleep 5; done;
+      echo 'Pulling models...';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"nomic-embed-text\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"gemma4:e2b\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"deepseek-r1:8b\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5\"}';
+      curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"mistral:latest\"}';
+      echo 'All models pulled successfully!'
+      "
+
+volumes:
+  ollama_data:
+  mongodb_data:
+
+networks:
+  rag_network:
+    driver: bridge
+    name: tesis-2026_rag_prod

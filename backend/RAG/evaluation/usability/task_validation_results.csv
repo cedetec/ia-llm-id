@@ -1,0 +1,40 @@
+task_id,modelo,rag,success,time_seconds,response,notes
+T1,gemma4:e2b,nomic,0,143.61,No encontré esa información...,No encontró información de los documentos
+T2,gemma4:e2b,nomic,0,157.72,No encontré esa información...,No encontró información de los documentos
+T3,gemma4:e2b,nomic,0,163.36,No encontré esa información...,No encontró información de los documentos
+T4,gemma4:e2b,nomic,0,79.96,No encontré esa información...,No encontró información de los documentos
+T5,gemma4:e2b,nomic,0,186.49,No encontré esa información...,No encontró información de los documentos
+T1,gemma4:e2b,nomic,0,0.01,,
+T2,gemma4:e2b,nomic,0,154.97,No encontré esa información...,No encontró información de los documentos
+T3,gemma4:e2b,nomic,1,235.98,"Las diferencias entre los requisitos para los proyectos albergantes en las convocatorias de 2022 y 2024 son:
+
+**Convocatoria 2022:**
+*   Los proyectos deben contar con una vigencia mínima hasta diciembre de 2023.
+*   Los proyectos albergantes deben contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos.
+
+**Convocatoria 2024:**
+*   Los proyectos deben contar con una vigencia mínima hasta diciembre de 2025.
+*   ANID financiará a proyectos con un tope de $559.076.940 (quinientos cincuenta y nueve millones).",Respondió correctamente la comparación de estos dos documentos de distintos años
+T4,gemma4:e2b,nomic,1,248.31,"Los requisitos relacionados con los proyectos albergantes se diferencian de la siguiente manera:
+
+**Concurso ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022 (Documento 1):**
+*   La vigencia mínima requerida para las propuestas del proyecto albergante es hasta diciembre de 2023.
+
+**Concurso ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2024 (Documento 2 y 4):**
+*   La vigencia mínima requerida para las propuestas del proyecto albergante es hasta diciembre de 2025.
+
+**Concurso ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020 (Documento 3):**
+*   La vigencia mínima requerida para los proyectos albergantes debe ser como mínimo hasta Junio del 2021.
+
+Además, en los tres casos, se establece que el proyecto albergante debe contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos y su utilización en la puesta a prueba de hipótesis y cumplimiento de objetivos precisos.",Responde correctamente la diferencia de los requisitos de estos dos documentos
+T5,gemma4:e2b,nomic,0,206.48,,El asistente no recibió ninguna respuesta
+T1,0,No encuentra las diferencias entre los objetivos del concurso de estos dos documentos,196.77
+T2,0,No contiene información de la comparación de estos dos documentos.,191.91
+T3,1,Responde correctamente la diferencia entre estos dos documentos.,227.48
+T4,1,Responde correctamente la diferencia de los requisitos de estos dos documentos.,261.79
+T5,0,Respondió solo del documentos 2022 y no hizo comparación con los otros documentos,266.07
+T1,1,Responde correctamente la comparación de los objetivos de estos dos mismos concursos pero distintos años,45.27
+T2,1,Responde correctamente la comparación del monto máximo y la duración de los proyectos de estos dos mismos concursos pero distintos años,42.85
+T3,1,Responde correctamente sobre las diferencias de los requisitos de estos dos mismos concursos pero distintos años,40.11
+T4,1,Responde correctamente la diferencia de los requisitos de estos tres documentos,44.58
+T5,1,Responde correctamente la comparación de estos tres documentos,64.10

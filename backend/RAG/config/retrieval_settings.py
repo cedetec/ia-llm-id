@@ -1,0 +1,11 @@
+# LLM/config/retrieval_settings.py
+
+DEFAULT_K = 30
+
+DEFAULT_FETCH_K = 40
+
+DEFAULT_LAMBDA = 0.6
+
+DEFAULT_SEARCH_TYPE = "similarity"
+
+DEFAULT_SCORE_THRESHOLD = 0.35

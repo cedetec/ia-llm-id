@@ -1,0 +1,116 @@
+[
+  {
+    "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+    "pregunta": "¿Cuál es el objetivo general del concurso?",
+    "respuesta": "El objetivo de la línea de financiamiento para acceso a embarcaciones es apoyar el desarrollo de proyectos de investigación, con financiamiento público vigente, en cualquier área del conocimiento en que este uso sea requerido para el cumplimiento de objetivos científicos dentro de los proyectos.",
+    "documentos_relevantes": [
+      [
+        "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        1
+      ]
+    ]
+  },
+  {
+    "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+    "pregunta": "¿Cuáles son los objetivos específicos del concurso?",
+    "respuesta": "Los objetivos específicos son facilitar la realización de investigación científica y tecnológica para la cual es imprescindible el uso de embarcaciones; incentivar el entrenamiento de investigadores recientemente formados y la formación de estudiantes de pre y postgrado incluidos en el proyecto albergante mediante su participación activa en el equipo que accederá al uso de la embarcación; y promover redes internacionales de cooperación con otros equipos de investigación extranjeros similares.",
+    "documentos_relevantes": [
+      [
+        "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        1
+      ]
+    ]
+  },
+  {
+    "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+    "pregunta": "¿Qué requisitos debe cumplir el proyecto albergante para postular al concurso?",
+    "respuesta": "El o los proyectos albergantes deben tener una vigencia mínima hasta diciembre de 2023 y contar con financiamiento para el posterior análisis de las muestras y/o datos obtenidos, así como para su utilización en la puesta a prueba de hipótesis y el cumplimiento de objetivos precisos.",
+    "documentos_relevantes": [
+      [
+        "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        3
+      ]
+    ]
+  },
+  {
+    "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+    "pregunta": "¿Cuál es el monto máximo de financiamiento y cuál es la duración del proyecto?",
+    "respuesta": "ANID financiará los proyectos con un tope de 416.000.000 de pesos, entregados en una única cuota a la Institución Beneficiaria según la disponibilidad presupuestaria del servicio. El proyecto tendrá una duración de 12 meses, contados desde la fecha de tramitación del acto administrativo que apruebe el respectivo convenio de ejecución.",
+    "documentos_relevantes": [
+      [
+        "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        4
+      ]
+    ]
+  },
+  {
+    "documento": "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+    "pregunta": "¿Qué condiciones básicas de admisibilidad se exigen para la postulación?",
+    "respuesta": "Entre las condiciones básicas de admisibilidad se exige que el coordinador o coordinadora del proyecto sea chileno o extranjero con residencia en Chile y cumpla la definición establecida en las bases; que los formularios de postulación se presenten completos y correctamente; y que exista al menos un proyecto albergante financiado con fondos públicos y con vigencia suficiente para procesar la información y las muestras obtenidas durante el crucero.",
+    "documentos_relevantes": [
+      [
+        "ACCESO-A-EMBARCACIONES-PARA-INVESTIGACIÓN-CIENTÍFICA-2022.pdf",
+        4
+      ]
+    ]
+  },
+  {
+    "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+    "pregunta": "¿Cuál es el objetivo general del concurso?",
+    "respuesta": "El concurso tiene por objetivo asignar tiempos de uso del Buque Cabo de Hornos durante el período comprendido entre el 9 y el 28 de noviembre de 2020, ambas fechas inclusive.",
+    "documentos_relevantes": [
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        1
+      ]
+    ]
+  },
+  {
+    "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+    "pregunta": "¿Qué objetivo de investigación debe justificar el uso del Buque Cabo de Hornos?",
+    "respuesta": "La postulación debe justificar la necesidad del uso del buque para realizar investigación científica y tecnológica que requiera esta infraestructura y equipamiento mayor, de modo que las actividades científicas propuestas puedan desarrollarse adecuadamente.",
+    "documentos_relevantes": [
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        1
+      ],
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        3
+      ]
+    ]
+  },
+  {
+    "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+    "pregunta": "¿Qué requisito de vigencia debe tener el proyecto albergante para la postulación?",
+    "respuesta": "Debe existir al menos un proyecto albergante financiado con fondos públicos con una duración o vigencia de al menos hasta junio de 2021, de manera que permita procesar la información y las muestras obtenidas durante el crucero dentro del período de vigencia del proyecto albergante.",
+    "documentos_relevantes": [
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        5
+      ]
+    ]
+  },
+  {
+    "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+    "pregunta": "¿Qué criterios utiliza la Comisión para determinar la factibilidad de los proyectos?",
+    "respuesta": "La Comisión determina la factibilidad de los proyectos considerando la ruta, los requisitos, el personal y los tiempos solicitados. Además, puede ajustar los tiempos y el número de personas que soliciten ser embarcadas cuando sea necesario para optimizar el uso del buque.",
+    "documentos_relevantes": [
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        3
+      ]
+    ]
+  },
+  {
+    "documento": "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+    "pregunta": "¿Qué institución organiza el concurso y a través de qué programa se realiza?",
+    "respuesta": "La Agencia Nacional de Investigación y Desarrollo (ANID), a través del Programa de Investigación Asociativa, llama al concurso para la asignación de tiempos de uso del Buque Cabo de Hornos.",
+    "documentos_relevantes": [
+      [
+        "ASIGNACIÓN-DE-TIEMPO-OCEANOGRÁFICO-CABO-DE-HORNOS-2020.pdf",
+        1
+      ]
+    ]
+  }
+]
