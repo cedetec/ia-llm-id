@@ -11,7 +11,7 @@ export default function RagSelector({
 
         <select
 
-            value="nomic"
+            value="embeddinggemma"
 
             disabled
 
@@ -19,9 +19,9 @@ export default function RagSelector({
 
         >
 
-            <option value="nomic">
+            <option value="embeddinggemma">
 
-                Nomic (Fijo)
+                EmbeddingGemma (Fijo)
 
             </option>
 

@@ -12,8 +12,7 @@ import DatabaseView from "../components/DatabaseView";
 import {
     obtenerEstadisticas,
     subirPDF,
-    descargarPDFs,
-    reindexarBaseDatos
+    descargarPDFs
 } from "../services/ChatDatabase";
 
 
@@ -50,10 +49,6 @@ export default function DatabasePage(){
 
 
     const [subiendo, setSubiendo] =
-        useState(false);
-
-
-    const [reindexando, setReindexando] =
         useState(false);
 
 
@@ -287,58 +282,6 @@ export default function DatabasePage(){
         };
 
 
-    /*
-     * Reindexar la base de datos.
-     */
-
-    const entrenar =
-        async () => {
-
-            setReindexando(true);
-
-            setMensaje(
-                "Reindexando documentos..."
-            );
-
-            setErrorMsg("");
-
-
-            try {
-
-                await reindexarBaseDatos();
-
-
-                setMensaje(
-                    "Reindexación completada correctamente."
-                );
-
-
-                /*
-                 * Actualizar estadísticas
-                 * después de reindexar.
-                 */
-
-                await cargarEstadisticas();
-
-
-            } catch (error) {
-
-                console.error(error);
-
-                setErrorMsg(
-                    error.message ||
-                    "No se pudo completar la reindexación."
-                );
-
-            } finally {
-
-                setReindexando(false);
-
-            }
-
-        };
-
-
     return (
 
         <div className="space-y-4">
@@ -432,27 +375,6 @@ export default function DatabasePage(){
             )}
 
 
-            {reindexando && (
-
-                <div
-                    className="
-                        rounded-lg
-                        bg-yellow-50
-                        px-4
-                        py-3
-                        text-sm
-                        text-yellow-700
-                    "
-                >
-
-                    🧠 Reindexando documentos.
-                    Esto puede tardar...
-
-                </div>
-
-            )}
-
-
             {/* =============================== */}
             {/* ARCHIVOS SELECCIONADOS          */}
             {/* =============================== */}
@@ -510,8 +432,6 @@ export default function DatabasePage(){
                 onDownload={descargarDatos}
 
                 onStats={cargarEstadisticas}
-
-                onTrain={entrenar}
 
             />
 

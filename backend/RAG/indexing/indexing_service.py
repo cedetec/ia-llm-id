@@ -52,8 +52,16 @@ def _mostrar_estadisticas(contador_secciones, contador_titulos):
     for nombre, cantidad in contador_titulos.most_common():
         print(f"{nombre:<35} {cantidad}")
 
+def _limpiar_cache_chroma():
+    try:
+        from chromadb.api.client import SharedSystemClient
+        SharedSystemClient.clear_system_cache()
+    except Exception:
+        pass
+
 def _limpiar_indice(embedding_model, persist_directory, collection_name):
     print(f"Limpiando colección anterior: {collection_name}")
+    _limpiar_cache_chroma()
     embeddings = crear_embeddings(embedding_model)
     try:
         vectorstore_existente = Chroma(
@@ -71,6 +79,7 @@ def _agregar_al_indice(
     persist_directory,
     collection_name
 ):
+    _limpiar_cache_chroma()
     embeddings = crear_embeddings(embedding_model)
     agregar_documentos_vectorstore(
         fragmentos,
@@ -79,7 +88,25 @@ def _agregar_al_indice(
         collection_name=collection_name
     )
 
-def indexar_pdf(pdf_path: Path):
+def _notificar_recarga_retrieval():
+    import os
+    import requests
+
+    retrieval_url = os.getenv(
+        "RETRIEVAL_RELOAD_URL",
+        "http://backend-retrieval:8001/reload"
+    )
+    try:
+        resp = requests.post(retrieval_url, timeout=30)
+        if resp.ok:
+            print("[INDEXING] Servicio backend-retrieval recargado automáticamente.")
+        else:
+            print(f"[INDEXING] Aviso al recargar retrieval ({resp.status_code}): {resp.text}")
+    except Exception as e:
+        print(f"[INDEXING] No se pudo notificar a backend-retrieval ({e}). Se recargará en la próxima consulta.")
+
+
+def indexar_pdf(pdf_path: Path, recargar_retrieval: bool = True):
     print("=" * 80)
     print(f"INDEXANDO: {pdf_path.name}")
     print("=" * 80)
@@ -118,6 +145,9 @@ def indexar_pdf(pdf_path: Path):
 
     print(f"PDF indexado: {pdf_path.name}")
 
+    if recargar_retrieval:
+        _notificar_recarga_retrieval()
+
     contador_secciones = Counter()
     contador_titulos = Counter()
     for doc in fragmentos:
@@ -129,7 +159,7 @@ def indexar_pdf(pdf_path: Path):
 def indexar_documentos():
     tiempo_inicio = time.time()
     print("=" * 80)
-    print("VERSION NUEVA DE INDEXING_SERVICE (ITERATIVA - SOLO NOMIC)")
+    print("VERSION NUEVA DE INDEXING_SERVICE (ITERATIVA)")
     print("=" * 80)
 
     ruta = Path(PDF_DIR)
@@ -159,10 +189,12 @@ def indexar_documentos():
 
     for idx, pdf in enumerate(archivos_pdf, 1):
         print(f"\nProcesando archivo {idx}/{len(archivos_pdf)}...")
-        chunks, c_sec, c_tit = indexar_pdf(pdf)
+        chunks, c_sec, c_tit = indexar_pdf(pdf, recargar_retrieval=False)
         total_chunks += chunks
         total_sec.update(c_sec)
         total_tit.update(c_tit)
+
+    _notificar_recarga_retrieval()
 
     print("=" * 80)
     print("TOTAL CHUNKS ALMACENADOS:", total_chunks)

@@ -1,8 +1,7 @@
-{/* frontend/src/components/DatasetToolbar.jsx */}
+{/* frontend/src/components/DatabaseToolbar.jsx */}
 export default function DatabaseToolbar({
 
     onUpload,
-    onTrain,
     onDownload,
     onStats
 
@@ -31,13 +30,6 @@ export default function DatabaseToolbar({
                 className="bg-gray-700 text-white px-4 py-2 rounded"
             >
                 Manejo Base de Datos
-            </button>
-
-            <button
-                onClick={onTrain}
-                className="bg-green-700 text-white px-4 py-2 rounded"
-            >
-                Entrenar
             </button>
 
         </div>

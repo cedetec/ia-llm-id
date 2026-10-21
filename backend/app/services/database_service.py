@@ -220,7 +220,7 @@ async def upload_pdf(
     print(indexar_pdf.__code__.co_filename)
     print("=" * 80)
 
-    chunks = indexar_pdf(destino)
+    chunks, _, _ = indexar_pdf(destino)
 
     print("=" * 80)
     print("DESPUÉS DE LLAMAR A indexar_pdf")
@@ -412,15 +412,9 @@ def build_database_stats() -> DatabaseStats:
     por GET /database/stats.
     """
 
-    embedding = (
-        f"{DEFAULT_EMBEDDING_MODEL} / "
-        f"{EMBEDDING_GEMMA_MODEL}"
-    )
+    embedding = EMBEDDING_GEMMA_MODEL
 
-    coleccion = (
-        f"{NOMIC_COLLECTION} / "
-        f"{GEMMA_COLLECTION}"
-    )
+    coleccion = GEMMA_COLLECTION
 
     modelo = obtener_modelo()
 

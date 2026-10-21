@@ -31,6 +31,12 @@ def reinicializar_rag():
     global rag_nomic
     global rag_gemma
 
+    try:
+        from chromadb.api.client import SharedSystemClient
+        SharedSystemClient.clear_system_cache()
+    except Exception as e:
+        print(f"[STARTUP] Aviso limpiando caché de Chroma: {e}")
+
     #
     # RAG Nomic
     #

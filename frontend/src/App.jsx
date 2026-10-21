@@ -32,7 +32,7 @@ export default function App() {
 
 
     const [rag, setRag] =
-        useState("nomic");
+        useState("embeddinggemma");
 
 
     /*

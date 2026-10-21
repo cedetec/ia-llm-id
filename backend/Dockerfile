@@ -37,6 +37,10 @@ RUN pip install -r requirements.txt
 RUN pip install --upgrade ollama posthog
 
 #
+# Pre-descargar el modelo CrossEncoder en la imagen para no demorar el arranque
+#
+
+RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
 #
 # Copiar el proyecto

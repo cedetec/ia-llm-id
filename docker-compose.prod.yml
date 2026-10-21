@@ -1,6 +1,7 @@
 services:
 
   backend-retrieval:
+    image: ia-llm-id-backend:latest
     build:
       context: ./backend
     depends_on:
@@ -25,12 +26,13 @@ services:
           "CMD-SHELL",
           "curl -fsS http://localhost:8001/health || exit 1"
         ]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 120s
 
   backend-generation:
+    image: ia-llm-id-backend:latest
     build:
       context: ./backend
     depends_on:
@@ -60,12 +62,13 @@ services:
           "CMD-SHELL",
           "curl -fsS http://localhost:8000/health || exit 1"
         ]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
   backend-ingestion:
+    image: ia-llm-id-backend:latest
     build:
       context: ./backend
     depends_on:

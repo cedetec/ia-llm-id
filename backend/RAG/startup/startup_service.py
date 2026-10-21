@@ -71,15 +71,11 @@ def crear_rag_service(
     )
 
     datos = vectorstore.get(
+        limit=5,
         include=["metadatas"]
     )
 
-    print(
-        "Metadatas:",
-        len(datos["metadatas"])
-    )
-
-    for md in datos["metadatas"][:5]:
+    for md in datos["metadatas"]:
 
         print(md)
 

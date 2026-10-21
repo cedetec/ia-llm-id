@@ -13,4 +13,4 @@ class Pregunta(BaseModel):
 
     modelo: Optional[str] = None
 
-    rag: Optional[str] = "nomic"
+    rag: Optional[str] = "embeddinggemma"

@@ -24,20 +24,35 @@ class RetrieveResponse(BaseModel):
     contextos_ragas: List[str]
     # metricas: dict (omitiendo por simplicidad de serialización)
 
-@router.post("/retrieve", response_model=RetrieveResponse)
-def retrieve(body: RetrieveRequest):
-    
-    if body.rag == "nomic":
-        rag_service = startup.rag_nomic
-        rag_nombre = "NOMIC"
-    elif body.rag == "embeddinggemma":
-        rag_service = startup.rag_gemma
-        rag_nombre = "EMBEDDINGGEMMA"
+def _obtener_rag_service(rag: str):
+    if rag == "nomic":
+        return startup.rag_nomic, "NOMIC"
+    elif rag == "embeddinggemma":
+        return startup.rag_gemma, "EMBEDDINGGEMMA"
     else:
         raise HTTPException(
             status_code=400,
             detail="RAG no válido. Use 'nomic' o 'embeddinggemma'."
         )
+
+
+@router.post("/reload")
+def reload_rag():
+    startup.reinicializar_rag()
+    return {
+        "ok": True,
+        "mensaje": "Servicios RAG recargados correctamente."
+    }
+
+
+@router.post("/retrieve", response_model=RetrieveResponse)
+def retrieve(body: RetrieveRequest):
+
+    rag_service, rag_nombre = _obtener_rag_service(body.rag)
+
+    if rag_service is None:
+        startup.reinicializar_rag()
+        rag_service, rag_nombre = _obtener_rag_service(body.rag)
 
     if rag_service is None:
         raise HTTPException(
@@ -49,18 +64,13 @@ def retrieve(body: RetrieveRequest):
         rag_service.cambiar_modelo(body.modelo)
 
     try:
-        # Llamamos al componente recuperar de RAGService manualmente
-        # ya que invoke original hace todo.
-        
-        # Como RAGService invoke también hace generation, usaremos su pipeline interno.
         from RAG.evaluation.rag_metrics import RAGMetrics
         from RAG.rag.context_builder import construir_contexto
-        
+        from RAG.rag.document_detector import detectar_documentos
+
         metricas = RAGMetrics()
         pregunta_busqueda = body.pregunta.lower()
-        
-        # En RAGService.invoke, detectan documentos relevantes... 
-        from RAG.rag.document_detector import detectar_documentos
+
         documentos_detectados = detectar_documentos(body.pregunta)
         documentos_relevantes = None
         if len(documentos_detectados) > 1:
@@ -68,14 +78,28 @@ def retrieve(body: RetrieveRequest):
                 [item["documento"], item["anio"]]
                 for item in documentos_detectados
             ]
-            
-        documentos = rag_service.pipeline.recuperar(
-            pregunta_busqueda,
-            body.pregunta,
-            metricas,
-            documento=body.documento,
-            documentos_relevantes=documentos_relevantes
-        )
+
+        try:
+            documentos = rag_service.pipeline.recuperar(
+                pregunta_busqueda,
+                body.pregunta,
+                metricas,
+                documento=body.documento,
+                documentos_relevantes=documentos_relevantes
+            )
+        except Exception:
+            # Si la colección de Chroma fue recreada al reindexar, recargar y reintentar
+            startup.reinicializar_rag()
+            rag_service, rag_nombre = _obtener_rag_service(body.rag)
+            if rag_service is None:
+                raise
+            documentos = rag_service.pipeline.recuperar(
+                pregunta_busqueda,
+                body.pregunta,
+                metricas,
+                documento=body.documento,
+                documentos_relevantes=documentos_relevantes
+            )
 
         contextos_ragas = [doc.page_content for doc in documentos]
         contexto_texto = construir_contexto(documentos)
