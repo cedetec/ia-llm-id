@@ -28,7 +28,9 @@ COPY requirements.txt .
 
 RUN python -m pip install --upgrade pip
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir -r requirements.txt
 
 #
 # Actualizar algunas librerías

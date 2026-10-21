@@ -33,8 +33,7 @@ services:
 
   backend-generation:
     image: ia-llm-id-backend:latest
-    build:
-      context: ./backend
+    pull_policy: never
     depends_on:
       backend-retrieval:
         condition: service_healthy
@@ -69,8 +68,7 @@ services:
 
   backend-ingestion:
     image: ia-llm-id-backend:latest
-    build:
-      context: ./backend
+    pull_policy: never
     depends_on:
       - ollama
       - mongodb
